@@ -54,7 +54,7 @@ SQL_CREATE_MEDIA_TABLE = """CREATE TABLE IF NOT EXISTS media (
                             id integer PRIMARY KEY AUTOINCREMENT,
                             media_name text NOT NULL,
                             media_type text NOT NULL,
-                            last_updated text NOT NULL
+                            last_updated integer NOT NULL
                             ); """
 
 SQL_CREATE_SONGS_TABLE = """CREATE TABLE IF NOT EXISTS songs (
@@ -62,7 +62,7 @@ SQL_CREATE_SONGS_TABLE = """CREATE TABLE IF NOT EXISTS songs (
                             song_name text NOT NULL,
                             artists text NOT NULL,
                             tunefind_id integer NOT NULL,
-                            spotify_uri text
+                            spotify_uri text NOT NULL
                             );"""
 
 SQL_CREATE_SHOWS_TABLE = """CREATE TABLE IF NOT EXISTS shows (
@@ -70,22 +70,22 @@ SQL_CREATE_SHOWS_TABLE = """CREATE TABLE IF NOT EXISTS shows (
                             season integer NOT NULL,
                             episode integer NOT NULL,
                             tunefind_id integer NOT NULL,
-                            media_id integer,
+                            media_id integer NOT NULL,
                             FOREIGN KEY (media_id) REFERENCES media (id)
                             );"""
 
 SQL_CREATE_MATCH_SHOW_TABLE = """CREATE TABLE IF NOT EXISTS match_show (
                                 id integer PRIMARY KEY AUTOINCREMENT,
-                                episode_id integer,
-                                song_id integer,
+                                episode_id integer NOT NULL,
+                                song_id integer NOT NULL,
                                 FOREIGN KEY (episode_id) REFERENCES shows (id),
                                 FOREIGN KEY (song_id) REFERENCES songs (id)
                                 );"""
 
 SQL_CREATE_MATCH_OTHER_TABLE = """CREATE TABLE IF NOT EXISTS match_other (
                                 id integer PRIMARY KEY AUTOINCREMENT,
-                                media_id integer,
-                                song_id integer,
+                                media_id integer NOT NULL,
+                                song_id integer NOT NULL,
                                 FOREIGN KEY (media_id) REFERENCES media (id),
                                 FOREIGN KEY (song_id) REFERENCES songs (id)
                                 );"""
@@ -231,7 +231,7 @@ class DBConnector:
             return rows[0][0]
         else:
             sql = 'INSERT INTO media(media_name,media_type,last_updated) VALUES(?,?,?)'
-            cur.execute(sql, [media_name, media_type, datetime.now()])
+            cur.execute(sql, [media_name, media_type, int(datetime.now().timestamp())])
             self.conn.commit()
             return cur.lastrowid
 
@@ -420,11 +420,11 @@ class DBConnector:
         Returns:
             Type of the media specified by name.
         """
+        cur = self.conn.cursor()
         sql = f"""SELECT media_type
                   FROM media
                   WHERE media_name=="{media_name}"
               """
-        cur = self.conn.cursor()
         cur.execute(sql)
         rows = cur.fetchall()
         return MediaType(int(rows[0][0]))
