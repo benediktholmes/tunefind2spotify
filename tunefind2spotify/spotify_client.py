@@ -47,7 +47,6 @@ class SpotifyClient:
                     scope=['playlist-modify-public']
                 )
         )
-        print(type(self.client))
 
     def export(self,
                playlist_name: str,
