@@ -72,6 +72,19 @@ def _scrape_show(media_name: str) -> dict:
 
     Returns:
         Dictionary containing selected data about specified show.
+            - `media_name`: Name of media.
+            - `media_type`: Type of media.
+            - `seasons`: List of dictionaries with keys:
+                - `id`: Tunefind ID of season.
+                - `name`: Name of season.
+                - `episodes`: List of dictionaries with keys:
+                    - `id`: Tunefind ID of episode.
+                    - `name`: Name of episode.
+                    - `songs`: List of dictionaries with keys:
+                        - `id`: Tunefind ID of song.
+                        - `name`: Name of song.
+                        - `spotify`: Spotify track URI.
+                        - `artists`: String of comma-separated artists.
     """
     data = dict(media_name=media_name, media_type=MediaType.SHOW, seasons=list())
     main = _fetch_json(f'https://www.tunefind.com/api/frontend/show/{media_name}?fields=seasons')
@@ -110,6 +123,13 @@ def _scrape_movie(media_name: str) -> dict:
 
     Returns:
         Dictionary containing selected data about specified movie.
+            - `media_name`: Name of media.
+            - `media_type`: Type of media.
+            - `songs`: List of dictionaries with keys:
+                - `id`: Tunefind ID of song.
+                - `name`: Name of song.
+                - `spotify`: Spotify track URI.
+                - `artists`: String of comma-separated artists.
     """
     data = dict(media_name=media_name, media_type=MediaType.MOVIE, songs=list())
     main = _fetch_json(f'https://www.tunefind.com/api/frontend/movie/{media_name}?fields=song_events')
@@ -130,7 +150,14 @@ def _scrape_game(media_name: str) -> dict:
         media_name: Name of the media as specified by Tunefind.
 
     Returns:
-        Dictionary containing selected data about specified game.
+        Dictionary containing selected data about specified game:
+            - `media_name`: Name of media.
+            - `media_type`: Type of media.
+            - `songs`: List of dictionaries with keys:
+                - `id`: Tunefind ID of song.
+                - `name`: Name of song.
+                - `spotify`: Spotify track URI.
+                - `artists`: String of comma-separated artists.
     """
     data = dict(media_name=media_name, media_type=MediaType.GAME, songs=list())
     main = _fetch_json(f'https://www.tunefind.com/api/frontend/game/{media_name}?fields=song_events')
