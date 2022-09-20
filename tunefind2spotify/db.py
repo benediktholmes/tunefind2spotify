@@ -429,5 +429,40 @@ class DBConnector:
         rows = cur.fetchall()
         return MediaType(int(rows[0][0]))
 
+    def get_last_updated(self, media_name: str) -> int:
+        """Retrieves the date that the specified media was scraped.
+
+        Args:
+            media_name: Name of the media.
+
+        Returns:
+            Unix time stamp in seconds.
+        """
+        cur = self.conn.cursor()
+        sql = f"""SELECT last_updated
+                  FROM media
+                  WHERE media_name=="{media_name}"
+              """
+        cur.execute(sql)
+        rows = cur.fetchall()
+        return int(rows[0][0])
+
+    def get_playlist_description(self, media_name: str) -> str:
+        """Creates playlist description for given media name.
+
+        Args:
+            media_name: Name of the media.
+
+        Returns:
+            Description as format string of Tunefind link + scraping date
+        """
+        description_format = 'https://www.tunefind.com/{}/{} | last-updated: {}'
+        media_type = self.get_media_type(media_name)
+        last_updated = self.get_last_updated(media_name)
+        date_str = datetime.strftime(datetime.fromtimestamp(last_updated), '%Y-%m-%d %H:%M:%S')
+        x = description_format.format(media_type.name.lower(), media_name, date_str)
+        print(x)
+        return x
+
     def __del__(self) -> None:
         self.conn.close()

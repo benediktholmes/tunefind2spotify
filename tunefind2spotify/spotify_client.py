@@ -13,7 +13,7 @@ refreshed automatically and cached in `PROJECT_DIR/.cache`.
 
 """
 
-from typing import List
+from typing import List, Optional
 
 from spotipy import Spotify
 from spotipy.oauth2 import SpotifyOAuth
@@ -51,12 +51,15 @@ class SpotifyClient:
 
     def export(self,
                playlist_name: str,
-               track_uris: List[str]) -> str:
+               track_uris: List[str],
+               description: Optional[str] = '') -> str:
         """Creates new public playlist with given name and songlist.
 
         Args:
             playlist_name: Name of the playlist to be created.
             track_uris: List of URIs to songs to be added to new playlist.
+            description: Description of playlist to be displayed on Spotify.
+                Optional, defaults to empty string.
 
         Returns:
             ID of newly created playlist
@@ -67,18 +70,26 @@ class SpotifyClient:
                                                         playlist_name,
                                                         public=True,
                                                         collaborative=False,
-                                                        description='')
-            playlist_id = playlist['id']
+                                                        description="")
+            playlist_id = playlist["id"]
+            self.client.playlist_change_details(playlist_id,
+                                                playlist_name,
+                                                public=True,
+                                                collaborative=False,
+                                                description=description)
             print(f'Created new playlist: `{playlist_name}` ({playlist_id})')
             # batch fill playlist
             for batch_idx in range(len(track_uris) // 50 + 1):
                 batch = track_uris[50 * batch_idx:50 * (batch_idx + 1)]
-                self.client.playlist_add_items(playlist_id,
-                                               batch)
-
+                self.client.playlist_add_items(playlist_id, batch)
         else:
             print(f'Playlist `{playlist_name}` exists. Continuing ...')
             playlist_id = self._get_playlist_id(playlist_name)
+            self.client.playlist_change_details(playlist_id,
+                                                playlist_name,
+                                                public=True,
+                                                collaborative=False,
+                                                description=description)
 
             # single fill playlist with checks
             for track_uri in track_uris:
