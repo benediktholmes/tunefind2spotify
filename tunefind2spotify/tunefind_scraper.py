@@ -111,7 +111,15 @@ def _scrape_movie(media_name: str) -> dict:
     Returns:
         Dictionary containing selected data about specified movie.
     """
-    raise NotImplementedError
+    data = dict(media_name=media_name, media_type=MediaType.MOVIE, songs=list())
+    main = _fetch_json(f'https://www.tunefind.com/api/frontend/movie/{media_name}?fields=song_events')
+    main.update({'name': main['movie']['name']})
+    for s in main['song_events']:
+        song = dict_keep(s['song'], ['id', 'name', 'spotify', 'artists'])
+        song.update({'artists': ', '.join([x['name'] for x in song['artists']])})
+        song.update({'spotify': handle_redirect_link(f'https://www.tunefind.com{song["spotify"]}')})
+        data['songs'].append(song)
+    return data
 
 
 def _scrape_game(media_name: str) -> dict:
@@ -124,7 +132,15 @@ def _scrape_game(media_name: str) -> dict:
     Returns:
         Dictionary containing selected data about specified game.
     """
-    raise NotImplementedError
+    data = dict(media_name=media_name, media_type=MediaType.GAME, songs=list())
+    main = _fetch_json(f'https://www.tunefind.com/api/frontend/game/{media_name}?fields=song_events')
+    main.update({'name': main['game']['name']})
+    for s in main['song_events']:
+        song = dict_keep(s['song'], ['id', 'name', 'spotify', 'artists'])
+        song.update({'artists': ', '.join([x['name'] for x in song['artists']])})
+        song.update({'spotify': handle_redirect_link(f'https://www.tunefind.com{song["spotify"]}')})
+        data['songs'].append(song)
+    return data
 
 
 MEDIA_MAP = {MediaType.SHOW: _scrape_show,
