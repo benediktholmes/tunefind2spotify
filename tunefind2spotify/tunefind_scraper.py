@@ -12,7 +12,16 @@ import requests
 
 from typing import Optional
 
+from tqdm import tqdm
+
+from tunefind2spotify.exceptions import log_and_raise, EmptyJSONResponse, MediaNotFound
+from tunefind2spotify.log import fetch_logger
 from tunefind2spotify.utils import MediaType, dict_keep
+
+
+logger = fetch_logger(__name__)
+
+API = 'https://www.tunefind.com/api/frontend'
 
 
 def _fetch_json(url: str) -> dict:
@@ -25,19 +34,20 @@ def _fetch_json(url: str) -> dict:
         The JSON object returned by the request.
 
     Raises:
-        requests.RequestException: Any RequestExceptions will be logged.
+        EmptyJSONResponse: In case returned JSON is empty.
+        requests.RequestException: Any Exception with the request.
     """
     try:
         resp = requests.get(url)
-        print(f'{resp.status_code} | request to {url}')
+        logger.debug(f'Response {resp.status_code} for request to {url}')
         result = resp.json()
         if result:
             return result
         else:
-            # TODO: Log
-            raise Exception('Empty json returned from request!')  # TODO: Specify what todo in case of empty json
+            # TODO: Now fails on first attempt. In future maybe implement retry?
+            log_and_raise(logger, EmptyJSONResponse, 'Empty json returned from request!')
     except requests.RequestException as e:
-        print(e)  # TODO: Log
+        log_and_raise(logger, e, '')
 
 
 def handle_redirect_link(url: str) -> str:
@@ -58,9 +68,13 @@ def handle_redirect_link(url: str) -> str:
         resp = requests.get(url, allow_redirects=False)
         if resp.status_code == 302:
             resp = requests.get(url, allow_redirects=True)
-            return f'spotify:track:{resp.url.split("/")[-1]}'
+            x = f'spotify:track:{resp.url.split("/")[-1]}'
+            logger.debug(f'Replaced forward link \'{url}\' -> \'{x}\'.')
+            return x
+        else:
+            logger.debug(f'No redirect for url: \'{url}\'.')
     except Exception as e:
-        print(e)  # TODO: log
+        log_and_raise(logger, e, '')
     return ''
 
 
@@ -87,10 +101,10 @@ def _scrape_show(media_name: str) -> dict:
                         - `artists`: String of comma-separated artists.
     """
     data = dict(media_name=media_name, media_type=MediaType.SHOW, seasons=list())
-    main = _fetch_json(f'https://www.tunefind.com/api/frontend/show/{media_name}?fields=seasons')
-    main.update({'name': main['show']['name']})
+    main = _fetch_json(f'{API}/show/{media_name}?fields=seasons')
+    main.update({'name': main['show']['name']})  # TODO: Relevance?
     for s in range(len(main['seasons'])):
-        season = _fetch_json(f'https://www.tunefind.com/api/frontend/show/{media_name}/season/{s + 1}?fields=episodes')
+        season = _fetch_json(f'{API}/show/{media_name}/season/{s + 1}?fields=episodes')
         data['seasons'].append(
                 dict(name=f'Season {s+1}',
                      id=f'season/{s+1}',
@@ -99,12 +113,15 @@ def _scrape_show(media_name: str) -> dict:
         )
         for e in range(len(season['episodes'])):
             episode_id = season['episodes'][e]['id']
-            episode = _fetch_json(f'https://www.tunefind.com/api/frontend/episode/{episode_id}?fields=song-events')
+            episode = _fetch_json(f'{API}/episode/{episode_id}?fields=song-events')
             songs = []
-            for se in episode['episode']['song_events']:
+            for se in tqdm(episode['episode']['song_events'],
+                           desc=f'Scraping season {s+1} episode {e+1}',
+                           disable=False):
                 song = dict_keep(se['song'], ['id', 'name', 'spotify', 'artists'])
                 song.update({'artists': ', '.join([x['name'] for x in song['artists']])})
-                song.update({'spotify': handle_redirect_link(f'https://www.tunefind.com{song["spotify"]}')})
+                song.update({'spotify': '' if song['spotify'] is None
+                             else handle_redirect_link(f'https://www.tunefind.com{song["spotify"]}')})
                 songs.append(song)
             data['seasons'][s]['episodes'].append(
                     dict(name=f'Episode {e+1}',
@@ -112,6 +129,12 @@ def _scrape_show(media_name: str) -> dict:
                          songs=songs
                          )
             )
+    y = []
+    for x in [x["episodes"] for x in data["seasons"]]:
+        y.extend(x)
+    logger.info(f'Found {len(data["seasons"])} seasons, '
+                f'{sum([len(x["episodes"]) for x in data["seasons"]])} episodes, '
+                f'{sum([sum([len(x["songs"]) for x in y])])} songs in total.')
     return data
 
 
@@ -132,13 +155,17 @@ def _scrape_movie(media_name: str) -> dict:
                 - `artists`: String of comma-separated artists.
     """
     data = dict(media_name=media_name, media_type=MediaType.MOVIE, songs=list())
-    main = _fetch_json(f'https://www.tunefind.com/api/frontend/movie/{media_name}?fields=song_events')
-    main.update({'name': main['movie']['name']})
-    for s in main['song_events']:
+    main = _fetch_json(f'{API}/movie/{media_name}?fields=song_events')
+    main.update({'name': main['movie']['name']})  # TODO: Relevance?
+    for s in tqdm(main['song_events'],
+                  desc='Scraping songs',
+                  disable=False):
         song = dict_keep(s['song'], ['id', 'name', 'spotify', 'artists'])
         song.update({'artists': ', '.join([x['name'] for x in song['artists']])})
-        song.update({'spotify': handle_redirect_link(f'https://www.tunefind.com{song["spotify"]}')})
+        song.update({'spotify': '' if song['spotify'] is None
+                     else handle_redirect_link(f'https://www.tunefind.com{song["spotify"]}')})
         data['songs'].append(song)
+    logger.info(f'Found {len(data["songs"])} songs in total.')
     return data
 
 
@@ -160,13 +187,17 @@ def _scrape_game(media_name: str) -> dict:
                 - `artists`: String of comma-separated artists.
     """
     data = dict(media_name=media_name, media_type=MediaType.GAME, songs=list())
-    main = _fetch_json(f'https://www.tunefind.com/api/frontend/game/{media_name}?fields=song_events')
-    main.update({'name': main['game']['name']})
-    for s in main['song_events']:
+    main = _fetch_json(f'{API}/game/{media_name}?fields=song_events')
+    main.update({'name': main['game']['name']})  # TODO: Relevance?
+    for s in tqdm(main['song_events'],
+                  desc='Scraping songs',
+                  disable=False):
         song = dict_keep(s['song'], ['id', 'name', 'spotify', 'artists'])
         song.update({'artists': ', '.join([x['name'] for x in song['artists']])})
-        song.update({'spotify': handle_redirect_link(f'https://www.tunefind.com{song["spotify"]}')})
+        song.update({'spotify': '' if song['spotify'] is None
+                     else handle_redirect_link(f'https://www.tunefind.com{song["spotify"]}')})
         data['songs'].append(song)
+    logger.info(f'Found {len(data["songs"])} songs in total.')
     return data
 
 
@@ -175,57 +206,96 @@ MEDIA_MAP = {MediaType.SHOW: _scrape_show,
              MediaType.GAME: _scrape_game}
 
 
+def _resource_exists(media_name: str, media_type: MediaType) -> bool:
+    """Checks whether combination of media name and type exists on Tunefind.
+
+     Note:
+        Check is based on HTTP 200 response when querying the Tunefind API for
+        given media name and a media type. Will use the first match, as media
+        names on Tunefind are unique.
+
+    Args:
+        media_name: Name of media to be checked.
+        media_type: Type of media to be checked.
+
+    Returns:
+        True, if the media exists, else False.
+
+    Raises:
+        requests.RequestException: Any Exception with the request.
+    """
+    exists = False
+    try:
+        logger.debug(f'Probing media type \'{str(media_type)}\': {API}/{MediaType.translate(media_type)}/{media_name}')
+        exists = requests.get(f'{API}/{MediaType.translate(media_type)}/{media_name}').status_code == 200
+    except requests.RequestException as e:
+        log_and_raise(logger, e, '')
+    return exists
+
+
+def _infer_media_type(media_name: str) -> (str, MediaType):
+    """Infers type of media given its name.
+
+    Args:
+        media_name: The name of media for which type shall be inferred.
+
+    Returns:
+        Tuple of media name and inferred type.
+
+    Raises:
+        requests.RequestException: Any Exception with the request.
+        MediaNotFound: If resource is not found on Tunefind.
+    """
+    correct_media_type = None
+    for media in MediaType:
+        try:
+            if _resource_exists(media_name, media):
+                correct_media_type = media
+                break
+        except requests.RequestException as e:
+            log_and_raise(logger, e, '')
+    if correct_media_type is None:
+        log_and_raise(logger, MediaNotFound, f'No media could be found for name \'{media_name}\'. Typo?')
+
+    return media_name, correct_media_type
+
+
 def _name_and_type_check(media_name: str, media_type: MediaType) -> (str, MediaType):
-    """Checks whether the resource exists on tunefind.com.
+    """Checks whether the resource exists on Tunefind.
+
 
     This function will check for existence of the resource including actions to
-    normalize the media name, probe different media types in case `None` was
-    given.
+    normalize the media name and/or probe different media types in case the one
+    specified does not exist or `None` was passed.
 
     Args:
         media_name: Name of the media as specified by Tunefind.
         media_type: Type of media as in the categories found on Tunefind. Must
             be one of `MediaType` enum values or `None` in which case the
-            correct media type will be inferred from probing Tunefind.
+            correct media type will be inferred from probing Tunefind API.
 
     Returns:
         Media name and type, corrected if necessary.
-
-    Raises:
-        Exception: If resource is not found on tunefind.com.
-        requests.RequestException: Any RequestExceptions will be logged.
     """
-    print(media_type, type(media_type))
-    correct_media_type = media_type if media_type is not None and media_type in MediaType else ''
-    correct_media = media_name.lower().replace(' ', '-').replace('_', '-')
+    correct_media_name = media_name.lower().replace(' ', '-').replace('_', '-')
+    if media_name != correct_media_name:
+        logger.info(f'Automatically corrected `media_name` from \'{media_name}\' to \'{correct_media_name}\'.')
+    correct_media_type = media_type if isinstance(media_type, MediaType) else ''
 
-    def resource_exists(media_name: str, media_type: MediaType):
-        exists = False
-        try:
-            print(f'probing: https://www.tunefind.com/api/frontend/{MediaType.translate(media_type)}/{media_name}')
-            exists = requests.get(
-                    f'https://www.tunefind.com/api/frontend/{MediaType.translate(media_type)}/{media_name}'
-            ).status_code == 200
-        except requests.RequestException as e:
-            print(e)  # TODO: Log
-        finally:
-            return exists
+    recheck_necessary = True
+    if correct_media_type == '':
+        logger.info('No media type given, will be inferred.')
+    elif not _resource_exists(correct_media_name, correct_media_type):
+        logger.info(f'No media found for type \'{str(correct_media_type)}\'.')
+    else:
+        recheck_necessary = False
 
     # Probe different media types if resource does not exist for given media
     # type or was not given at all (`None`)
-    if not resource_exists(correct_media, correct_media_type):
-        correct_media_type = None
-        for media in MediaType:
-            try:
-                if resource_exists(correct_media, media):
-                    correct_media_type = media
-                    break
-            except requests.RequestException as e:
-                print(e)  # TODO: Log
-        if correct_media_type is None:
-            raise Exception()  # TODO: Specify error raised if resource is not found
-
-    return correct_media, correct_media_type
+    if recheck_necessary:
+        correct_media_name, correct_media_type = _infer_media_type(correct_media_name)
+    logger.info(f'Verified existence of media \'{media_name}\' with type \'{str(correct_media_type)}\'.')
+    return correct_media_name, correct_media_type
 
 
 def scrape(media_name: str, media_type: Optional[MediaType] = None) -> dict:
@@ -247,4 +317,5 @@ def scrape(media_name: str, media_type: Optional[MediaType] = None) -> dict:
         relevant scraped information.
     """
     media_name, media_type = _name_and_type_check(media_name, media_type)
+    logger.info(f'Scraping \'{media_name}\' from Tunefind ...')
     return MEDIA_MAP[media_type](media_name)

@@ -1,3 +1,4 @@
+argparse
 requests
 spotipy
-argparse
+tqdm
