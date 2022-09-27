@@ -1,4 +1,8 @@
+# IDE
 .idea/
+
+# Logging
+*.log
 
 # API-Keys and DB
 tunefind2spotify/data/
