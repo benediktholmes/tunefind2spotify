@@ -6,10 +6,6 @@ Attributes:
     PROGRAM_NAME (str): Name of this program.
     VERSION_FILE (str): Path to file holding the version number of the program.
     ARGS (dict): Holds the arguments after being processed by argparse.
-
-Todo:
-    - Implement correct logging
-
 """
 
 import argparse
@@ -17,10 +13,15 @@ import os
 
 from typing import Optional
 
-from tunefind2spotify.spotify_client import SpotifyClient
-from tunefind2spotify.db import DBConnector
 from tunefind2spotify import tunefind_scraper
+from tunefind2spotify.db import DBConnector
+from tunefind2spotify.exceptions import log_and_raise, MissingCredentialsException
+from tunefind2spotify.log import fetch_logger
+from tunefind2spotify.spotify_client import SpotifyClient
 from tunefind2spotify.utils import MediaType
+
+
+logger = fetch_logger(__name__)
 
 PROGRAM_NAME = 'tunefind2spotify'
 VERSION_FILE = os.path.join(
@@ -34,8 +35,7 @@ VERSION_FILE = os.path.join(
 ARGS = {}
 
 
-# TODO: Due to hierarchy log which (without secret) and from where credentials where taken!
-def find_credentials(delimiter: Optional[str] = '$'):
+def find_credentials(delimiter: Optional[str] = '|'):
     """Searches the credentials for the Spotify API passed to the application.
 
     The following first-match order applies:
@@ -46,19 +46,34 @@ def find_credentials(delimiter: Optional[str] = '$'):
 
     Args:
         delimiter: Character that separates the credentials in a string.
-            Optional, defaults to `$`.
+            Optional, defaults to `|`.
 
     Returns:
         user, secret, redirect_uri: Credentials used for Spotify's OAuth.
 
     Raises:
-        Exception: In case no credentials were found.
+        ValueError: In case credentials do not fit format, the delimiter does
+            not obey its restrictions or the path to given file does not exist.
+        MissingCredentialsException: In case no credentials were found.
     """
+    def _unpack(creds: str) -> (str, str, str):
+        if str.count(creds, delimiter) != 2 or len(creds) < 5:
+            log_and_raise(logger, ValueError, f'Insuffient credentials to be extraced from \'{creds}\'.')
+        return creds.split(delimiter)
+
+    if len(delimiter) != 1:
+        log_and_raise(logger, ValueError, f'Delimiter must be a single character. Provided \'{delimiter}\' instead.')
+
     if 'credentials' in ARGS.keys() and ARGS['credentials'] is not None:
-        return ARGS['credentials'].split(delimiter)
+        logger.info('Spotipy credentials taken from cmd arguments.')
+        i, s, r = _unpack(ARGS['credentials'])
+        logger.debug(f'Using Spotify Client ID: \'{i}\'.')
+        return i, s, r
     elif 'SPOTIPY_CLIENT_ID' in os.environ.keys() and \
          'SPOTIPY_CLIENT_SECRET' in os.environ.keys() and \
          'SPOTIPY_REDIRECT_URI' in os.environ.keys():
+        logger.debug('Spotipy credentials taken from env variables.')
+        logger.debug(f'Using Spotify Client ID: \'{os.environ["SPOTIPY_CLIENT_ID"]}\'.')
         return os.environ['SPOTIPY_CLIENT_ID'], os.environ['SPOTIPY_CLIENT_SECRET'], os.environ['SPOTIPY_REDIRECT_URI']
     elif 'cred-file' in ARGS.keys():
         path = os.path.join(
@@ -66,12 +81,17 @@ def find_credentials(delimiter: Optional[str] = '$'):
                 ARGS['cred-file'])
         if os.path.isfile(path):
             with open(path, 'r') as f:
-                return f.readline().split(delimiter)
+                logger.debug(f'Spotipy credentials taken from file \'{path}\'.')
+                i, s, r = _unpack(f.readline())
+                logger.debug(f'Using Spotify Client ID: \'{i}\'.')
+                return i, s, r
         else:
-            raise Exception(f'Credentials file {path} not found!')
+            log_and_raise(logger, ValueError, f'Credentials file {path} not found!')
     else:
-        raise Exception('Missing credentials to use Spotify API! Please refer to app\'s'
-                        'usage that details the ways how to specify the credentials.')
+        log_and_raise(logger, MissingCredentialsException,
+                      'No credentials found to be used with Spotify API! Please'
+                      'refer to app\'s usage that details the ways how to'
+                      'specify the credentials.')
 
 
 def fetch(media_name: str, media_type: Optional[MediaType] = None, **kwargs) -> None:
@@ -103,15 +123,18 @@ def export(media_name: str, **kwargs) -> None:
         media_name: Name of the media as specified by Tunefind.
     """
     dbc = DBConnector()
-    media_type = dbc.get_media_type(media_name)
-    if media_type is MediaType.SHOW:
-        uris = dbc.get_track_uris_show(media_name=media_name)
+    if dbc.media_exists(media_name):
+        media_type = dbc.get_media_type(media_name)
+        if media_type is MediaType.SHOW:
+            uris = dbc.get_track_uris_show(media_name=media_name)
+        else:
+            uris = dbc.get_track_uris_media(media_name=media_name)
+        spc = SpotifyClient(*find_credentials())
+        spc.export(playlist_name=media_name,
+                   track_uris=uris,
+                   description=dbc.get_playlist_description(media_name))
     else:
-        uris = dbc.get_track_uris_media(media_name=media_name)
-    spc = SpotifyClient(*find_credentials())
-    spc.export(playlist_name=media_name,
-               track_uris=uris,
-               description=dbc.get_playlist_description(media_name))
+        logger.warning(f'Media \'{media_name}\' does not exist in database. Please fetch first.')
 
 
 def create_playlist(media_name: str, media_type: Optional[MediaType] = None, **kwargs) -> None:
@@ -136,7 +159,7 @@ def entrypoint():
                         version=f'{PROGRAM_NAME} {open(VERSION_FILE, "r").readline()}')
     parser.add_argument('-c', '--credentials',
                         action='store',
-                        help='Spotify API credentials specified inline as "ID$SECRET$REDIRECT_URI". Can alternatively '
+                        help='Spotify API credentials specified inline as "ID|SECRET|REDIRECT_URI". Can alternatively '
                              'be specified as via environment variables `SPOTIPY_CLIENT_ID`, `SPOTIPY_CLIENT_SECRET` '
                              'and `SPOTIPY_REDIRECT_URI`. Use only one method to specify all credentials. If not '
                              'specified, then credentials are expected to be read from a credentials file.')
@@ -145,7 +168,7 @@ def entrypoint():
                         default='.spotipy_credentials',
                         dest='cred-file',
                         help='Name of file in repository root that specifies Spotify API credentials as '
-                             '"ID$SECRET$REDIRECT_URI" in first line of file. If not specified, defaults to file '
+                             '"ID|SECRET|REDIRECT_URI" in first line of file. If not specified, defaults to file '
                              '`.spotipy-credentials`')
 
     # create the subparsers
@@ -186,13 +209,16 @@ def entrypoint():
     args = vars(parser.parse_args())
     if 'media_type' in args.keys():
         args.update({'media_type': MediaType.read_in(args['media_type'])})
-    # TODO: Log invocation with args
-    print(args)
+
+    logger.debug(f'Application was invoked with args: {args}.')
     global ARGS
     ARGS = args
 
+    logger.info(f'Invocation of {args["func"].__name__} function.')
     args['func'](**args)
 
 
 if __name__ == '__main__':
+    logger.debug('Commandline invocation started.')
     entrypoint()
+    logger.debug('Done.')
