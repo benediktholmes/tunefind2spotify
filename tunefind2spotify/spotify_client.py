@@ -17,8 +17,13 @@ from typing import List, Optional
 
 from spotipy import Spotify
 from spotipy.oauth2 import SpotifyOAuth
+from tqdm import tqdm
 
+from tunefind2spotify.log import fetch_logger
 from tunefind2spotify.utils import singleton
+
+
+logger = fetch_logger(__name__)
 
 
 @singleton
@@ -44,10 +49,12 @@ class SpotifyClient:
                     client_id=client_id,
                     client_secret=client_secret,
                     redirect_uri=redirect_uri,
-                    scope=['playlist-modify-public']
+                    scope=['playlist-modify-private']
                 )
         )
+        logger.debug(f'Spotify client {self} successfully initialized and authenticated.')
 
+# TODO: In future differentiate media_name & playlist_name.
     def export(self,
                playlist_name: str,
                track_uris: List[str],
@@ -63,38 +70,43 @@ class SpotifyClient:
         Returns:
             ID of newly created playlist
         """
+        logger.info(f'Exporting playlist \'{playlist_name}\' to Spotify ...')
         # create playlist
         if not self._playlist_exists(playlist_name):
             playlist = self.client.user_playlist_create(self.client.me()['id'],
                                                         playlist_name,
-                                                        public=True,
+                                                        public=False,
                                                         collaborative=False,
-                                                        description="")
-            playlist_id = playlist["id"]
+                                                        description='')
+            playlist_id = playlist['id']
             self.client.playlist_change_details(playlist_id,
                                                 playlist_name,
-                                                public=True,
+                                                public=False,
                                                 collaborative=False,
                                                 description=description)
-            print(f'Created new playlist: `{playlist_name}` ({playlist_id})')
+            logger.info(f'Created new playlist: \'{playlist_name}\' ({playlist_id})')
             # batch fill playlist
-            for batch_idx in range(len(track_uris) // 50 + 1):
+            for batch_idx in tqdm(range(len(track_uris) // 50 + 1), disable=False):
                 batch = track_uris[50 * batch_idx:50 * (batch_idx + 1)]
+                for track_uri in batch:
+                    logger.debug(f'Adding track \'{track_uri}\' to playlist \'{playlist_name}\' ({playlist_id})')
                 self.client.playlist_add_items(playlist_id, batch)
         else:
-            print(f'Playlist `{playlist_name}` exists. Continuing ...')
             playlist_id = self._get_playlist_id(playlist_name)
+            logger.info(f'Playlist \'{playlist_name}\' ({playlist_id}) exists. Updating ...')
             self.client.playlist_change_details(playlist_id,
                                                 playlist_name,
-                                                public=True,
+                                                public=False,
                                                 collaborative=False,
                                                 description=description)
 
             # single fill playlist with checks
-            for track_uri in track_uris:
+            for track_uri in tqdm(track_uris, disable=False):
                 if not self._item_exists_in_playlist(playlist_id, track_uri):
-                    print(f'Adding track `{track_uri}` to playlist `{playlist_name}` ({playlist_id})')
+                    logger.debug(f'Adding track \'{track_uri}\' to playlist \'{playlist_name}\' ({playlist_id})')
                     self.client.playlist_add_items(playlist_id, [track_uri])
+                else:
+                    logger.debug(f'Track \'{track_uri}\' already exists in \'{playlist_name}\' ({playlist_id})')
 
         return playlist_id
 
