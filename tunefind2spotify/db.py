@@ -38,11 +38,14 @@ import os
 import sqlite3
 
 from datetime import datetime
-from sqlite3 import Error
-from typing import List, Optional
+from typing import List, Optional, Iterable
 
+from tunefind2spotify.exceptions import log_and_raise
+from tunefind2spotify.log import fetch_logger, flatten_multiline_string
 from tunefind2spotify.utils import MediaType, singleton
 
+
+logger = fetch_logger(__name__)
 
 DEFAULT_DB_FILEPATH = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
@@ -91,46 +94,6 @@ SQL_CREATE_MATCH_OTHER_TABLE = """CREATE TABLE IF NOT EXISTS match_other (
                                 );"""
 
 
-def create_connection(db_file: str) -> sqlite3.Connection:
-    """Creates a database connection via SQLite.
-
-    Args:
-        db_file: Name of database file.
-
-    Returns:
-        A sqlite3.Connection object.
-
-    Raises:
-        TODO
-    """
-    conn = None
-    try:
-        conn = sqlite3.connect(db_file)
-    except Error as e:
-        print(e)  # TODO: Log
-    return conn
-
-
-def create_table(conn: sqlite3.Connection, create_table_sql: str) -> None:
-    """Creates a table from the create_table_sql statement.
-
-    TODO: Careful: Any SQL command could be passed to this function!
-
-    Args:
-        conn: The connection object referencing the database in which to add the
-            new table.
-        create_table_sql: SQL statement to be executed.
-
-    Raises:
-        TODO
-    """
-    try:
-        c = conn.cursor()
-        c.execute(create_table_sql)
-    except Error as e:
-        print(e)  # TODO: log
-
-
 @singleton
 class DBConnector:
     """Handler for access to database.
@@ -146,15 +109,45 @@ class DBConnector:
             db_filepath: Full path to database file. Optional, defaults to
             `DEFAULT_DB_FILEPATH`.
         """
+        if not os.path.isfile(db_filepath):
+            logger.debug(f'Database file \'{db_filepath}\' does not exist. Creating new one ...')
         path = os.path.dirname(db_filepath)
         if not os.path.isdir(path):
+            logger.debug(f'Creating path to database file \'{path}\'.')
             os.mkdir(path)
-        self.conn = create_connection(db_filepath)
-        create_table(self.conn, SQL_CREATE_MEDIA_TABLE)
-        create_table(self.conn, SQL_CREATE_SONGS_TABLE)
-        create_table(self.conn, SQL_CREATE_SHOWS_TABLE)
-        create_table(self.conn, SQL_CREATE_MATCH_SHOW_TABLE)
-        create_table(self.conn, SQL_CREATE_MATCH_OTHER_TABLE)
+        self.conn = sqlite3.connect(db_filepath)
+        self._execute(SQL_CREATE_MEDIA_TABLE)
+        self._execute(SQL_CREATE_SONGS_TABLE)
+        self._execute(SQL_CREATE_SHOWS_TABLE)
+        self._execute(SQL_CREATE_MATCH_SHOW_TABLE)
+        self._execute(SQL_CREATE_MATCH_OTHER_TABLE)
+        logger.debug(f'Database client {self} successfully initialized using file \'{db_filepath}\'.')
+
+    def _execute(self, sql: str, params: Optional[Iterable] = ()) -> sqlite3.Cursor:
+        """Executes and commits given SQL and returns Cursor object.
+
+        Note:
+            A commit on any SQL that is not an insert is a no-op (see sqlite3
+                docs).
+
+        Args:
+            sql: SQL statement to be executed.
+            params: Parameter list to be passed for sql statement. Optional,
+                defaults to empty tuple.
+
+        Returns:
+            Sqlite3 Cursor object that can be accessed for query result.
+
+        Raises:
+            sqlite3.Error: Any Exception in sqlite3.
+        """
+        try:
+            cursor = self.conn.execute(sql, params)
+            self.conn.commit()
+            logger.debug(f'Executed \'{flatten_multiline_string(sql)}\'.')
+            return cursor
+        except sqlite3.Error as e:
+            log_and_raise(logger, e, '')
 
     def insert_json_data(self, data: dict) -> None:
         """Inserts data from nested dictionary into database.
@@ -222,18 +215,19 @@ class DBConnector:
         Returns:
             Primary key of entry in media table.
         """
-        cur = self.conn.cursor()
-        sql = f'SELECT * FROM media WHERE media_name=="{media_name}"'
-        cur.execute(sql)
-        rows = cur.fetchall()
-        assert len(rows) <= 1  # There should be at most one result as the media names are unique on Tunefind.
-        if rows:
-            return rows[0][0]
+        if self.media_exists(media_name):
+            cursor = self._execute(f'SELECT * FROM media WHERE media_name=="{media_name}"')
+            rows = cursor.fetchall()
+            key = rows[0][0]
+            logger.debug(f'Song with `media_name` \'{media_name}\' '
+                         f'already exists in `media` table for primary key \'{key}\'.')
         else:
-            sql = 'INSERT INTO media(media_name,media_type,last_updated) VALUES(?,?,?)'
-            cur.execute(sql, [media_name, media_type, int(datetime.now().timestamp())])
-            self.conn.commit()
-            return cur.lastrowid
+            cursor = self._execute('INSERT INTO media(media_name,media_type,last_updated) VALUES(?,?,?)',
+                                   [media_name, media_type, int(datetime.now().timestamp())])
+            key = cursor.lastrowid
+            logger.debug(f'Inserted media with `media_name` \'{media_name}\' '
+                         f'into `media` table (primary key \'{key}\').')
+        return key
 
     def _insert_song(self,
                      song_name: str,
@@ -251,22 +245,20 @@ class DBConnector:
         Returns:
             Primary key of entry in songs table.
         """
-        cur = self.conn.cursor()
-        sql = f"""SELECT *
-                  FROM songs
-                  WHERE tunefind_id=="{tunefind_id}"
-               """
-        cur.execute(sql)
-        rows = cur.fetchall()
+        cursor = self._execute(f'SELECT * FROM songs WHERE tunefind_id=="{tunefind_id}"')
+        rows = cursor.fetchall()
         assert len(rows) <= 1, rows  # There should be at most one result as the Tunefind ID are unique.
         if rows:
-            return rows[0][0]
+            key = rows[0][0]
+            logger.debug(f'Song with `tunefind_id` \'{tunefind_id}\' '
+                         f'already exists in `songs` table for primary key \'{key}\'.')
         else:
-            sql = 'INSERT INTO songs(song_name,artists,tunefind_id,spotify_uri) VALUES(?,?,?,?)'
-            cur = self.conn.cursor()
-            cur.execute(sql, [song_name, artists, tunefind_id, spotify_uri])
-            self.conn.commit()
-            return cur.lastrowid
+            cursor = self._execute('INSERT INTO songs(song_name,artists,tunefind_id,spotify_uri) VALUES(?,?,?,?)',
+                                   [song_name, artists, tunefind_id, spotify_uri])
+            key = cursor.lastrowid
+            logger.debug(f'Inserted song with `tunefind_id` \'{tunefind_id}\' '
+                         f'into `songs` table (primary key \'{key}\').')
+        return key
 
     def _insert_show(self,
                      media_foreign_key: int,
@@ -282,29 +274,32 @@ class DBConnector:
         Returns:
             List of primary keys of entry in show table wrt. to season order.
         """
-        cur = self.conn.cursor()
-        prim_keys = []
+        keys = []
         for s, e_ids in enumerate(episode_ids):
             eps_keys = []
             for e, e_id in enumerate(e_ids):
-                sql = f"""SELECT *
-                          FROM shows
-                          WHERE media_id=="{media_foreign_key}"
-                          AND season=="{s+1}"
-                          AND episode=="{e+1}"
-                      """
-                cur.execute(sql)
-                rows = cur.fetchall()
+                cursor = self._execute(f"""SELECT *
+                                           FROM shows
+                                           WHERE media_id=="{media_foreign_key}"
+                                           AND season=="{s+1}"
+                                           AND episode=="{e+1}"
+                                       """)
+                rows = cursor.fetchall()
                 assert len(rows) <= 1  # There should be at most one result.
                 if rows:
-                    eps_keys.append(rows[0][0])
+                    key = rows[0][0]
+                    logger.debug(f'Episode {e} (\'{e_id}\') for media \'{media_foreign_key}\' '
+                                 f'already exists in `shows` table for primary key \'{key}\'.')
+                    eps_keys.append(key)
                 else:
-                    sql = 'INSERT INTO shows(season,episode,tunefind_id,media_id) VALUES(?,?,?,?)'
-                    cur.execute(sql, [s + 1, e + 1, e_id, media_foreign_key])
-                    self.conn.commit()
-                    eps_keys.append(cur.lastrowid)
-            prim_keys.append(eps_keys)
-        return prim_keys
+                    cursor = self._execute('INSERT INTO shows(season,episode,tunefind_id,media_id) VALUES(?,?,?,?)',
+                                           [s + 1, e + 1, e_id, media_foreign_key])
+                    key = cursor.lastrowid
+                    logger.debug(f'Inserted episode with `tunefind_id` \'{e_id}\' '
+                                 f'into `shows` table (primary key \'{key}\').')
+                    eps_keys.append(key)
+            keys.append(eps_keys)
+        return keys
 
     def _insert_match(self,
                       x_foreign_key: int,
@@ -323,30 +318,43 @@ class DBConnector:
         Returns:
             Primary key of entry in corresponding match table.
         """
-        cur = self.conn.cursor()
         if media_type == MediaType.SHOW:
-            sql = f'SELECT * FROM match_show WHERE episode_id=="{x_foreign_key}" AND song_id=="{song_foreign_key}"'
-            cur.execute(sql)
-            rows = cur.fetchall()
+            cursor = self._execute(f"""SELECT *
+                                       FROM match_show
+                                       WHERE episode_id=="{x_foreign_key}"
+                                       AND song_id=="{song_foreign_key}"
+                                   """)
+            rows = cursor.fetchall()
             assert len(rows) <= 1  # There should be at most one result.
             if rows:
-                return rows[0][0]
+                key = rows[0][0]
+                logger.debug(f'Match (\'{x_foreign_key}\', \'{song_foreign_key}\') '
+                             f'already exists in table `match_show` for primary key \'{key}\'.')
             else:
-                sql_show = 'INSERT INTO match_show(episode_id,song_id) VALUES(?,?)'
-                cur.execute(sql_show, [x_foreign_key, song_foreign_key])
-                self.conn.commit()
+                cursor = self._execute('INSERT INTO match_show(episode_id,song_id) VALUES(?,?)',
+                                       [x_foreign_key, song_foreign_key])
+                key = cursor.lastrowid
+                logger.debug(f'Inserted match (\'{x_foreign_key}\', \'{song_foreign_key}\') '
+                             f'into `match_show` table (primary key \'{key}\').')
         else:
-            sql = f'SELECT * FROM match_other WHERE media_id=="{x_foreign_key}" AND song_id=="{song_foreign_key}"'
-            cur.execute(sql)
-            rows = cur.fetchall()
+            cursor = self._execute(f"""SELECT *
+                                       FROM match_other
+                                       WHERE media_id=="{x_foreign_key}"
+                                       AND song_id=="{song_foreign_key}"
+                                   """)
+            rows = cursor.fetchall()
             assert len(rows) <= 1  # There should be at most one result.
             if rows:
-                return rows[0][0]
+                key = rows[0][0]
+                logger.debug(f'Match (\'{x_foreign_key}\', \'{song_foreign_key}\') '
+                             f'already exists in table `match_other` for primary key \'{key}\'.')
             else:
-                sql_other = 'INSERT INTO match_other(media_id,song_id) VALUES(?,?)'
-                cur.execute(sql_other, [x_foreign_key, song_foreign_key])
-                self.conn.commit()
-        return cur.lastrowid
+                cursor = self._execute('INSERT INTO match_other(media_id,song_id) VALUES(?,?)',
+                                       [x_foreign_key, song_foreign_key])
+                key = cursor.lastrowid
+                logger.debug(f'Inserted match (\'{x_foreign_key}\', \'{song_foreign_key}\') '
+                             f'into `match_other` table (primary key \'{key}\').')
+        return key
 
     def get_track_uris_media(self, media_name: str) -> List[str]:
         """Retrieves song URIs from database referencing to given media name.
@@ -357,15 +365,13 @@ class DBConnector:
         Returns:
             List of song URI referenced by media name.
         """
-        sql = f"""SELECT spotify_uri
-                  FROM songs
-                  JOIN match_other ON songs.id=match_other.song_id
-                  JOIN media ON media.id=match_other.media_id
-                  WHERE media.media_name=="{media_name}"
-              """
-        cur = self.conn.cursor()
-        cur.execute(sql)
-        rows = cur.fetchall()
+        cursor = self._execute(f"""SELECT spotify_uri
+                                   FROM songs
+                                   JOIN match_other ON songs.id=match_other.song_id
+                                   JOIN media ON media.id=match_other.media_id
+                                   WHERE media.media_name=="{media_name}"
+                               """)
+        rows = cursor.fetchall()
         return [x[0] for x in rows if x[0]]
 
     def get_track_uris_show(self,
@@ -385,18 +391,21 @@ class DBConnector:
 
         Returns:
             List of song URI referenced by media name.
+
+        Raises:
+            ValueError: If case `restrict_to_season` is out-of-bounds.
         """
-        cur = self.conn.cursor()
         if restrict_to_season is not None:
-            sql = f"""SELECT *
-                      FROM shows
-                      JOIN media ON media.id=shows.media_id
-                      WHERE media.media_name=="{media_name}" AND shows.season=="{restrict_to_season}"
-                  """
-            cur.execute(sql)
-            rows = cur.fetchall()
+            cursor = self._execute(f"""SELECT *
+                                       FROM shows
+                                       JOIN media ON media.id=shows.media_id
+                                       WHERE media.media_name=="{media_name}" AND shows.season=="{restrict_to_season}"
+                                   """)
+            rows = cursor.fetchall()
             if not rows:
-                raise Exception(f'Parameter `restrict-to-season` out-of-bounds with value: {restrict_to_season}')
+                log_and_raise(logger, ValueError,
+                              f'Parameter `restrict-to-season` out-of-bounds with value: {restrict_to_season}')
+
         sql = f"""SELECT spotify_uri
                   FROM songs
                   JOIN match_show ON songs.id=match_show.song_id
@@ -407,9 +416,27 @@ class DBConnector:
         sql_restriction = f' AND shows.season={restrict_to_season}'
         if restrict_to_season is not None:
             sql += sql_restriction
-        cur.execute(sql)
-        rows = cur.fetchall()
+        cursor = self._execute(sql)
+        rows = cursor.fetchall()
         return [x[0] for x in rows if x[0]]
+
+    def media_exists(self, media_name) -> bool:
+        """Checks whether or not the media exists in the database.
+
+        Args:
+            media_name: The name of media to be checked for existence.
+
+        Returns:
+            True, if media exists, else False.
+
+        Raises:
+            AssertionError: In case there is one then one entry with the same
+                `media_name`. In that case the database semantics are corrupt.
+        """
+        cursor = self._execute(f'SELECT * FROM media WHERE media_name=="{media_name}"')
+        rows = cursor.fetchall()
+        assert len(rows) <= 1  # There should be at most one result as the media names are unique on Tunefind.
+        return len(rows) == 1
 
     def get_media_type(self, media_name: str) -> MediaType:
         """Retrieves media type stored in media table for given media name.
@@ -420,13 +447,8 @@ class DBConnector:
         Returns:
             Type of the media specified by name.
         """
-        cur = self.conn.cursor()
-        sql = f"""SELECT media_type
-                  FROM media
-                  WHERE media_name=="{media_name}"
-              """
-        cur.execute(sql)
-        rows = cur.fetchall()
+        cursor = self._execute(f'SELECT media_type FROM media WHERE media_name=="{media_name}"')
+        rows = cursor.fetchall()
         return MediaType(int(rows[0][0]))
 
     def get_last_updated(self, media_name: str) -> int:
@@ -438,15 +460,11 @@ class DBConnector:
         Returns:
             Unix time stamp in seconds.
         """
-        cur = self.conn.cursor()
-        sql = f"""SELECT last_updated
-                  FROM media
-                  WHERE media_name=="{media_name}"
-              """
-        cur.execute(sql)
-        rows = cur.fetchall()
+        cursor = self._execute(f'SELECT last_updated FROM media WHERE media_name=="{media_name}"')
+        rows = cursor.fetchall()
         return int(rows[0][0])
 
+    # TODO: Maybe move this function to spotify_client's internals.
     def get_playlist_description(self, media_name: str) -> str:
         """Creates playlist description for given media name.
 
@@ -461,7 +479,6 @@ class DBConnector:
         last_updated = self.get_last_updated(media_name)
         date_str = datetime.strftime(datetime.fromtimestamp(last_updated), '%Y-%m-%d %H:%M:%S')
         x = description_format.format(media_type.name.lower(), media_name, date_str)
-        print(x)
         return x
 
     def __del__(self) -> None:
