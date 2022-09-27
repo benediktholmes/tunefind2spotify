@@ -7,3 +7,13 @@
 - added: scraping of all media types (show, movie, game)
 - added: playlist description: (tunefind-url | last-updated: YYY-MM-DD HH:MM:SS)
 - updated: documentation
+
+### 0.1.0
+- added: log module
+- added: exceptions module
+- added: logging in existing modules
+- added: verbose information (loading bars)
+- updated: corrected / specified exceptions being raised
+- updated: refactoring of database module
+- updated: broke down complex functions in scraper module
+- fixed: handling of missing Spotify links during scraping
