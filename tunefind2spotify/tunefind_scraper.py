@@ -155,7 +155,7 @@ def _scrape_movie(media_name: str) -> dict:
                 - `artists`: String of comma-separated artists.
     """
     data = dict(media_name=media_name, media_type=MediaType.MOVIE, songs=list())
-    main = _fetch_json(f'{API}/movie/{media_name}?fields=song_events')
+    main = _fetch_json(f'{API}/movie/{media_name}?fields=song-events')
     main.update({'name': main['movie']['name']})  # TODO: Relevance?
     for s in tqdm(main['song_events'],
                   desc='Scraping songs',
@@ -172,7 +172,6 @@ def _scrape_movie(media_name: str) -> dict:
 def _scrape_game(media_name: str) -> dict:
     """Scrapes data for given media name in case of MediaTYPE.GAME.
 
-
     Args:
         media_name: Name of the media as specified by Tunefind.
 
@@ -187,7 +186,7 @@ def _scrape_game(media_name: str) -> dict:
                 - `artists`: String of comma-separated artists.
     """
     data = dict(media_name=media_name, media_type=MediaType.GAME, songs=list())
-    main = _fetch_json(f'{API}/game/{media_name}?fields=song_events')
+    main = _fetch_json(f'{API}/game/{media_name}?fields=song-events')
     main.update({'name': main['game']['name']})  # TODO: Relevance?
     for s in tqdm(main['song_events'],
                   desc='Scraping songs',
