@@ -1,2 +1,5 @@
 coverage
+myst-parser
 pytest
+sphinx
+sphinx-rtd-theme

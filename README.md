@@ -15,6 +15,18 @@ Make sure to install all requirements:
 pip install -r requirements.txt -r dev_requirements.txt
 ```
 
+### Documentation
+
+Latest documentation is available at [???](). (Re-)create documentation by
+running:
+
+```shell script
+cd docs
+mkdir build/
+sphinx-apidoc -fePM -d -1 -o source/ ../tunefind2spotify/
+make html
+```
+
 ### Testing
 
 Run Unittests with coverage via:
