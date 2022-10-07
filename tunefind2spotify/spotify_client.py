@@ -26,6 +26,7 @@ from tunefind2spotify.utils import singleton
 logger = fetch_logger(__name__)
 
 
+# TODO: Error handling if playlist_add_items handles 40X return code!
 @singleton
 class SpotifyClient:
     """Client that exposes relevant interface to Spotify.
@@ -54,7 +55,8 @@ class SpotifyClient:
         )
         logger.debug(f'Spotify client {self} successfully initialized and authenticated.')
 
-# TODO: In future differentiate media_name & playlist_name.
+    # TODO: In future differentiate media_name & playlist_name.
+    # TODO: Ensure to only add unique URIs!
     def export(self,
                playlist_name: str,
                track_uris: List[str],
@@ -66,6 +68,7 @@ class SpotifyClient:
             track_uris: List of URIs to songs to be added to new playlist.
             description: Description of playlist to be displayed on Spotify.
                 Optional, defaults to empty string.
+
 
         Returns:
             ID of newly created playlist
@@ -127,7 +130,9 @@ class SpotifyClient:
             offset += limit
         return ''
 
-    def _item_exists_in_playlist(self, playlist_id: str, track_uri: str) -> bool:
+    def _item_exists_in_playlist(self,
+                                 playlist_id: str,
+                                 track_uri: str) -> bool:
         limit, offset = 50, 0
         while items := self.client.playlist_items(playlist_id, limit=limit, offset=offset)['items']:
             if track_uri in [x['track']['uri'] for x in items]:
