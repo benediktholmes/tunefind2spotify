@@ -457,6 +457,19 @@ class DBConnector:
         rows = cursor.fetchall()
         return MediaType(int(rows[0][0]))
 
+    def get_readable_name(self, media_name: str) -> str:
+        """Retrieves the readable_name of the specified media.
+
+        Args:
+            media_name: Name of the media.
+
+        Returns:
+            Readable media name.
+        """
+        cursor = self._execute(f'SELECT readable_name FROM media WHERE media_name=="{media_name}"')
+        rows = cursor.fetchall()
+        return rows[0][0]
+
     def get_last_updated(self, media_name: str) -> int:
         """Retrieves the date that the specified media was scraped.
 
@@ -470,7 +483,6 @@ class DBConnector:
         rows = cursor.fetchall()
         return int(rows[0][0])
 
-    # TODO: Maybe move this function to spotify_client's internals.
     def get_playlist_description(self, media_name: str) -> str:
         """Creates playlist description for given media name.
 
@@ -480,7 +492,7 @@ class DBConnector:
         Returns:
             Description as format string of Tunefind link + scraping date
         """
-        description_format = 'https://www.tunefind.com/{}/{} | last-updated: {}'
+        description_format = 'sourced from: https://www.tunefind.com/{}/{} | last-updated: {}'
         media_type = self.get_media_type(media_name)
         last_updated = self.get_last_updated(media_name)
         date_str = datetime.strftime(datetime.fromtimestamp(last_updated), '%Y-%m-%d %H:%M:%S')

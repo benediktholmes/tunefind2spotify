@@ -50,7 +50,8 @@ class SpotifyClient:
                     client_id=client_id,
                     client_secret=client_secret,
                     redirect_uri=redirect_uri,
-                    scope=['playlist-modify-private']
+                    scope=['playlist-modify-private',
+                           'playlist-read-private']
                 )
         )
         logger.debug(f'Spotify client {self} successfully initialized and authenticated.')
@@ -61,7 +62,7 @@ class SpotifyClient:
                playlist_name: str,
                track_uris: List[str],
                description: Optional[str] = '') -> str:
-        """Creates new public playlist with given name and songlist.
+        """Creates new public playlist with given name and track list.
 
         Args:
             playlist_name: Name of the playlist to be created.

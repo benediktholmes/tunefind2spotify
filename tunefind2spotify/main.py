@@ -132,7 +132,7 @@ def export(media_name: str, **kwargs) -> None:
         else:
             uris = dbc.get_track_uris_media(media_name=media_name)
         spc = SpotifyClient(*find_credentials())
-        spc.export(playlist_name=media_name,
+        spc.export(playlist_name=dbc.get_readable_name(media_name),
                    track_uris=uris,
                    description=dbc.get_playlist_description(media_name))
     else:
