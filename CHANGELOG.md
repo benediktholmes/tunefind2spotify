@@ -17,3 +17,7 @@
 - updated: refactoring of database module
 - updated: broke down complex functions in scraper module
 - fixed: handling of missing Spotify links during scraping
+
+### 0.1.1
+- added: unittests
+- added: configs for linter and coverage
