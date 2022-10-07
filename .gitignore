@@ -1,3 +1,9 @@
+# Testing
+tests/test_data/*.db
+
+# Coverage Output
+.coverage
+
 # IDE
 .idea/
 
