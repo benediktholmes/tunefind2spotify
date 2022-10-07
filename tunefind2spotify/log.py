@@ -1,9 +1,12 @@
+"""Factory and utils for module specific logging."""
+
 import logging
 
 _LOG_LEVEL = logging.INFO  # DEBUG
 
 
 def fetch_logger(name: str) -> logging.Logger:
+    """Returns a named logger instance."""
     logger = logging.getLogger(name)
     logger.setLevel(_LOG_LEVEL)
 
@@ -32,4 +35,4 @@ def flatten_multiline_string(x: str) -> str:
     x.strip()
     while '  ' in x:
         x = x.replace('  ', ' ')
-    return x
+    return x.strip()
