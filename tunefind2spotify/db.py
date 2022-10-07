@@ -57,6 +57,7 @@ SQL_CREATE_MEDIA_TABLE = """CREATE TABLE IF NOT EXISTS media (
                             id integer PRIMARY KEY AUTOINCREMENT,
                             media_name text NOT NULL,
                             media_type text NOT NULL,
+                            readable_name text NOT NULL,
                             last_updated integer NOT NULL
                             ); """
 
@@ -158,8 +159,10 @@ class DBConnector:
         Args:
             data: Nested dictionary holding data to be inserted into database.
         """
+        from pprint import pp
         media_prim_key = self._insert_media(media_name=data['media_name'],
-                                            media_type=data['media_type'])
+                                            media_type=data['media_type'],
+                                            readable_name=data['readable_name'])
         if data['media_type'] == MediaType.SHOW:
             epsids = []
             song_prim_keys = []
@@ -205,12 +208,14 @@ class DBConnector:
 
     def _insert_media(self,
                       media_name: str,
-                      media_type: MediaType) -> int:
+                      media_type: MediaType,
+                      readable_name: str) -> int:
         """Inserts new media entry (if not exists) into media table.
 
         Args:
             media_name: Name of media to be inserted in media table.
             media_type: Type of media to be inserted in media table.
+            readable_name: A readable name of media.
 
         Returns:
             Primary key of entry in media table.
@@ -222,8 +227,9 @@ class DBConnector:
             logger.debug(f'Song with `media_name` \'{media_name}\' '
                          f'already exists in `media` table for primary key \'{key}\'.')
         else:
-            cursor = self._execute('INSERT INTO media(media_name,media_type,last_updated) VALUES(?,?,?)',
-                                   [media_name, media_type, int(datetime.now().timestamp())])
+            cursor = self._execute(
+                    'INSERT INTO media(media_name,media_type,readable_name,last_updated) VALUES(?,?,?,?)',
+                    [media_name, media_type, readable_name, int(datetime.now().timestamp())])
             key = cursor.lastrowid
             logger.debug(f'Inserted media with `media_name` \'{media_name}\' '
                          f'into `media` table (primary key \'{key}\').')

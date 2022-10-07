@@ -102,7 +102,7 @@ def _scrape_show(media_name: str) -> dict:
     """
     data = dict(media_name=media_name, media_type=MediaType.SHOW, seasons=list())
     main = _fetch_json(f'{API}/show/{media_name}?fields=seasons')
-    main.update({'name': main['show']['name']})  # TODO: Relevance?
+    data.update({'readable_name': main['show']['name']})
     for s in range(len(main['seasons'])):
         season = _fetch_json(f'{API}/show/{media_name}/season/{s + 1}?fields=episodes')
         data['seasons'].append(
@@ -156,7 +156,7 @@ def _scrape_movie(media_name: str) -> dict:
     """
     data = dict(media_name=media_name, media_type=MediaType.MOVIE, songs=list())
     main = _fetch_json(f'{API}/movie/{media_name}?fields=song-events')
-    main.update({'name': main['movie']['name']})  # TODO: Relevance?
+    data.update({'readable_name': main['movie']['name']})
     for s in tqdm(main['song_events'],
                   desc='Scraping songs',
                   disable=False):
@@ -187,7 +187,7 @@ def _scrape_game(media_name: str) -> dict:
     """
     data = dict(media_name=media_name, media_type=MediaType.GAME, songs=list())
     main = _fetch_json(f'{API}/game/{media_name}?fields=song-events')
-    main.update({'name': main['game']['name']})  # TODO: Relevance?
+    data.update({'readable_name': main['game']['name']})
     for s in tqdm(main['song_events'],
                   desc='Scraping songs',
                   disable=False):
