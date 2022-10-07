@@ -14,7 +14,7 @@ import os
 from typing import Optional
 
 from tunefind2spotify import tunefind_scraper
-from tunefind2spotify.db import DBConnector
+from tunefind2spotify import db
 from tunefind2spotify.exceptions import log_and_raise, MissingCredentialsException
 from tunefind2spotify.log import fetch_logger
 from tunefind2spotify.spotify_client import SpotifyClient
@@ -32,6 +32,7 @@ VERSION_FILE = os.path.join(
                    ),
                    'VERSION'
                )
+DEFAULT_CRED_FILE = '.spotipy_credentials'
 ARGS = {}
 
 
@@ -58,7 +59,7 @@ def find_credentials(delimiter: Optional[str] = '|'):
     """
     def _unpack(creds: str) -> (str, str, str):
         if str.count(creds, delimiter) != 2 or len(creds) < 5:
-            log_and_raise(logger, ValueError, f'Insuffient credentials to be extraced from \'{creds}\'.')
+            log_and_raise(logger, ValueError, f'Insufficient credentials to be extraced from \'{creds}\'.')
         return creds.split(delimiter)
 
     if len(delimiter) != 1:
@@ -89,8 +90,8 @@ def find_credentials(delimiter: Optional[str] = '|'):
             log_and_raise(logger, ValueError, f'Credentials file {path} not found!')
     else:
         log_and_raise(logger, MissingCredentialsException,
-                      'No credentials found to be used with Spotify API! Please'
-                      'refer to app\'s usage that details the ways how to'
+                      'No credentials found to be used with Spotify API! Please '
+                      'refer to app\'s usage that details the ways how to '
                       'specify the credentials.')
 
 
@@ -112,17 +113,18 @@ def fetch(media_name: str, media_type: Optional[MediaType] = None, **kwargs) -> 
             which case the correct media type will be inferred from probing Tunefind.
     """
     json_data = tunefind_scraper.scrape(media_name=media_name, media_type=media_type)
-    dbc = DBConnector()
+    dbc = db.DBConnector()
     dbc.insert_json_data(json_data)
 
 
+# TODO: No name check performed here!
 def export(media_name: str, **kwargs) -> None:
     """Create playlist for `media_name` from information available in database.
 
     Args:
         media_name: Name of the media as specified by Tunefind.
     """
-    dbc = DBConnector()
+    dbc = db.DBConnector()
     if dbc.media_exists(media_name):
         media_type = dbc.get_media_type(media_name)
         if media_type is MediaType.SHOW:
@@ -137,6 +139,7 @@ def export(media_name: str, **kwargs) -> None:
         logger.warning(f'Media \'{media_name}\' does not exist in database. Please fetch first.')
 
 
+# TODO: No name check performed here!
 def create_playlist(media_name: str, media_type: Optional[MediaType] = None, **kwargs) -> None:
     """Fetches then exports the data for given `media_name`.
 
@@ -165,7 +168,7 @@ def entrypoint():
                              'specified, then credentials are expected to be read from a credentials file.')
     parser.add_argument('-f', '--cred-file',
                         action='store',
-                        default='.spotipy_credentials',
+                        default=DEFAULT_CRED_FILE,
                         dest='cred-file',
                         help='Name of file in repository root that specifies Spotify API credentials as '
                              '"ID|SECRET|REDIRECT_URI" in first line of file. If not specified, defaults to file '
