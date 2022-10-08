@@ -259,9 +259,26 @@ def _infer_media_type(media_name: str) -> (str, MediaType):
     return media_name, correct_media_type
 
 
-def _name_and_type_check(media_name: str, media_type: MediaType) -> (str, MediaType):
-    """Checks whether the resource exists on Tunefind.
+def name_normalization(media_name: str):
+    """Normalizes the given media name.
 
+        Forces lower case and hyphen separation.
+
+    Args:
+        media_name: Name of the media.
+
+    Returns:
+        Normalized media name.
+
+    """
+    correct_media_name = media_name.lower().strip().replace(' ', '-').replace('_', '-')
+    if media_name != correct_media_name:
+        logger.info(f'Automatically corrected `media_name` from \'{media_name}\' to \'{correct_media_name}\'.')
+    return correct_media_name
+
+
+def name_and_type_check(media_name: str, media_type: MediaType) -> (str, MediaType):
+    """Checks whether the resource exists on Tunefind.
 
     This function will check for existence of the resource including actions to
     normalize the media name and/or probe different media types in case the one
@@ -276,9 +293,7 @@ def _name_and_type_check(media_name: str, media_type: MediaType) -> (str, MediaT
     Returns:
         Media name and type, corrected if necessary.
     """
-    correct_media_name = media_name.lower().replace(' ', '-').replace('_', '-')
-    if media_name != correct_media_name:
-        logger.info(f'Automatically corrected `media_name` from \'{media_name}\' to \'{correct_media_name}\'.')
+    correct_media_name = name_normalization(media_name)
     correct_media_type = media_type if isinstance(media_type, MediaType) else ''
 
     recheck_necessary = True
@@ -315,6 +330,6 @@ def scrape(media_name: str, media_type: Optional[MediaType] = None) -> dict:
         A (nested) dictionary object corresponding to the JSON holding the
         relevant scraped information.
     """
-    media_name, media_type = _name_and_type_check(media_name, media_type)
+    media_name, media_type = name_and_type_check(media_name, media_type)
     logger.info(f'Scraping \'{media_name}\' from Tunefind ...')
     return MEDIA_MAP[media_type](media_name)

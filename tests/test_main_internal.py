@@ -6,10 +6,7 @@ from tests import mock_main as main
 from tests.test_data.mock_json_data import \
     MOCK_SHOW_JSON, \
     MOCK_MOVIE_JSON, \
-    MOCK_GAME_JSON, \
-    MOCK_SHOW_JSON_NAME_NORM, \
-    MOCK_MOVIE_JSON_NAME_NORM, \
-    MOCK_GAME_JSON_NAME_NORM
+    MOCK_GAME_JSON
 
 
 def test_find_credentials_delimiter():
@@ -82,15 +79,15 @@ def test_export_without_fetch():
     main.__setattr__('ARGS', {'credentials': 'USERID|SECRET|REDIRECT_URI'})
 
     main.string_capture.reset()
-    main.export(MOCK_SHOW_JSON_NAME_NORM)
+    main.export(MOCK_SHOW_JSON['media_name'])
     assert main.string_capture.getvalue().split(os.linesep)[-2].startswith('WARNING')
 
     main.string_capture.reset()
-    main.export(MOCK_MOVIE_JSON_NAME_NORM)
+    main.export(MOCK_MOVIE_JSON['media_name'])
     assert main.string_capture.getvalue().split(os.linesep)[-2].startswith('WARNING')
 
     main.string_capture.reset()
-    main.export(MOCK_GAME_JSON_NAME_NORM)
+    main.export(MOCK_GAME_JSON['media_name'])
     assert main.string_capture.getvalue().split(os.linesep)[-2].startswith('WARNING')
 
     main.__setattr__('ARGS', _copy_args)
@@ -103,21 +100,21 @@ def test_export_with_fetch():
     main.__setattr__('ARGS', {'credentials': 'USERID|SECRET|REDIRECT_URI'})
 
     main.fetch(MOCK_SHOW_JSON['media_name'])
-    assert main.db.DBConnector().media_exists(MOCK_SHOW_JSON_NAME_NORM)
+    assert main.db.DBConnector().media_exists(MOCK_SHOW_JSON['media_name'])
     main.string_capture.reset()
-    main.export(MOCK_SHOW_JSON_NAME_NORM)
+    main.export(MOCK_SHOW_JSON['media_name'])
     assert not main.string_capture.getvalue().split(os.linesep)[-2].startswith('WARNING')
 
     main.fetch(MOCK_MOVIE_JSON['media_name'])
-    assert main.db.DBConnector().media_exists(MOCK_MOVIE_JSON_NAME_NORM)
+    assert main.db.DBConnector().media_exists(MOCK_MOVIE_JSON['media_name'])
     main.string_capture.reset()
-    main.export(MOCK_MOVIE_JSON_NAME_NORM)
+    main.export(MOCK_MOVIE_JSON['media_name'])
     assert not main.string_capture.getvalue().split(os.linesep)[-2].startswith('WARNING')
 
     main.fetch(MOCK_GAME_JSON['media_name'])
-    assert main.db.DBConnector().media_exists(MOCK_GAME_JSON_NAME_NORM)
+    assert main.db.DBConnector().media_exists(MOCK_GAME_JSON['media_name'])
     main.string_capture.reset()
-    main.export(MOCK_GAME_JSON_NAME_NORM)
+    main.export(MOCK_GAME_JSON['media_name'])
     assert not main.string_capture.getvalue().split(os.linesep)[-2].startswith('WARNING')
 
     main.__setattr__('ARGS', _copy_args)
@@ -130,12 +127,12 @@ def test_create_playlist():
     _copy_args = copy.deepcopy(main.ARGS)
     main.__setattr__('ARGS', {'credentials': 'USERID|SECRET|REDIRECT_URI'})
 
-    main.create_playlist(MOCK_SHOW_JSON_NAME_NORM)
-    assert main.db.DBConnector().media_exists(MOCK_SHOW_JSON_NAME_NORM)
-    main.create_playlist(MOCK_MOVIE_JSON_NAME_NORM)
-    assert main.db.DBConnector().media_exists(MOCK_MOVIE_JSON_NAME_NORM)
-    main.create_playlist(MOCK_GAME_JSON_NAME_NORM)
-    assert main.db.DBConnector().media_exists(MOCK_GAME_JSON_NAME_NORM)
+    main.create_playlist(MOCK_SHOW_JSON['media_name'])
+    assert main.db.DBConnector().media_exists(MOCK_SHOW_JSON['media_name'])
+    main.create_playlist(MOCK_MOVIE_JSON['media_name'])
+    assert main.db.DBConnector().media_exists(MOCK_MOVIE_JSON['media_name'])
+    main.create_playlist(MOCK_GAME_JSON['media_name'])
+    assert main.db.DBConnector().media_exists(MOCK_GAME_JSON['media_name'])
 
     main.__setattr__('ARGS', _copy_args)
     main.db.REUSE = _val

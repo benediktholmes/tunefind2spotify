@@ -22,11 +22,9 @@ from tunefind2spotify import spotify_client
 
 from tests.mock_logger import mock_logger
 from tests.test_data.mock_json_data import \
+    MOCK_SHOW_JSON, \
     MOCK_MOVIE_JSON, \
     MOCK_GAME_JSON, \
-    MOCK_SHOW_JSON_NAME_NORM, \
-    MOCK_MOVIE_JSON_NAME_NORM, \
-    MOCK_GAME_JSON_NAME_NORM, \
     _get_show_uris
 
 
@@ -54,9 +52,9 @@ class MockSpotifyClient:
         elif item == 'user_playlist_create':
             def func(id_, pn, *args, **kwargs):
                 self.increment(item)
-                pid = {MOCK_SHOW_JSON_NAME_NORM: 12,
-                       MOCK_MOVIE_JSON_NAME_NORM: 34,
-                       MOCK_GAME_JSON_NAME_NORM: 56}[pn]
+                pid = {MOCK_SHOW_JSON['media_name']: 12,
+                       MOCK_MOVIE_JSON['media_name']: 34,
+                       MOCK_GAME_JSON['media_name']: 56}[pn]
                 self._crt_playlists['items'].append({'name': pn, 'id': pid})
                 return {'id': pid}
         elif item == 'playlist_items':
@@ -115,15 +113,15 @@ def test_mock_object():
     assert isinstance(spc.client, MockSpotifyClient)
     # test mock functions
     spc.client.current_user_playlists()
-    playlist = spc.client.user_playlist_create(0, MOCK_SHOW_JSON_NAME_NORM)
+    playlist = spc.client.user_playlist_create(0, MOCK_SHOW_JSON['media_name'])
     pid = playlist['id']
     items = spc.client.playlist_items(pid)
     assert items, f'Items should be non-empty list of playlist items for mock show. Instead got : {items} .'
-    playlist = spc.client.user_playlist_create(0, MOCK_MOVIE_JSON_NAME_NORM)
+    playlist = spc.client.user_playlist_create(0, MOCK_MOVIE_JSON['media_name'])
     pid = playlist['id']
     items = spc.client.playlist_items(pid)
     assert items, f'Items should be non-empty list of playlist items for mock movie. Instead got : {items} .'
-    playlist = spc.client.user_playlist_create(0, MOCK_GAME_JSON_NAME_NORM)
+    playlist = spc.client.user_playlist_create(0, MOCK_GAME_JSON['media_name'])
     pid = playlist['id']
     items = spc.client.playlist_items(pid)
     assert items, f'Items should be non-empty list of playlist items for mock game. Instead got : {items} .'

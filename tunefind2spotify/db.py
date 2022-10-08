@@ -159,7 +159,6 @@ class DBConnector:
         Args:
             data: Nested dictionary holding data to be inserted into database.
         """
-        from pprint import pp
         media_prim_key = self._insert_media(media_name=data['media_name'],
                                             media_type=data['media_type'],
                                             readable_name=data['readable_name'])

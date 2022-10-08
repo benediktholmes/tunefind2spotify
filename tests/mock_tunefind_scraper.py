@@ -26,10 +26,7 @@ from tests.mock_logger import mock_logger
 from tests.test_data.mock_json_data import \
     MOCK_SHOW_JSON, \
     MOCK_MOVIE_JSON, \
-    MOCK_GAME_JSON, \
-    MOCK_SHOW_JSON_NAME_NORM, \
-    MOCK_MOVIE_JSON_NAME_NORM, \
-    MOCK_GAME_JSON_NAME_NORM
+    MOCK_GAME_JSON
 
 
 def mock_fetch_json(url):  # noqa: C901
@@ -81,9 +78,9 @@ def _get(url):
     if 'forward' in url_split:
         return MockRequestReturn(random.choice([302, 404]))
     elif MediaType.read_in(url_split[-2]) is not None:  # noqa: F821
-        if (MediaType.read_in(url_split[-2]) == MediaType.SHOW and url_split[-1] == MOCK_SHOW_JSON_NAME_NORM) or \
-           (MediaType.read_in(url_split[-2]) == MediaType.MOVIE and url_split[-1] == MOCK_MOVIE_JSON_NAME_NORM) or \
-           (MediaType.read_in(url_split[-2]) == MediaType.GAME and url_split[-1] == MOCK_GAME_JSON_NAME_NORM):
+        if (MediaType.read_in(url_split[-2]) == MediaType.SHOW and url_split[-1] == MOCK_SHOW_JSON['media_name']) or \
+           (MediaType.read_in(url_split[-2]) == MediaType.MOVIE and url_split[-1] == MOCK_MOVIE_JSON['media_name']) or \
+           (MediaType.read_in(url_split[-2]) == MediaType.GAME and url_split[-1] == MOCK_GAME_JSON['media_name']):
             return MockRequestReturn(200)
         else:
             return MockRequestReturn(404)

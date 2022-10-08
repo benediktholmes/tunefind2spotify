@@ -117,13 +117,13 @@ def fetch(media_name: str, media_type: Optional[MediaType] = None, **kwargs) -> 
     dbc.insert_json_data(json_data)
 
 
-# TODO: No name check performed here!
 def export(media_name: str, **kwargs) -> None:
     """Create playlist for `media_name` from information available in database.
 
     Args:
         media_name: Name of the media as specified by Tunefind.
     """
+    media_name = tunefind_scraper.name_normalization(media_name)
     dbc = db.DBConnector()
     if dbc.media_exists(media_name):
         media_type = dbc.get_media_type(media_name)
@@ -139,7 +139,6 @@ def export(media_name: str, **kwargs) -> None:
         logger.warning(f'Media \'{media_name}\' does not exist in database. Please fetch first.')
 
 
-# TODO: No name check performed here!
 def create_playlist(media_name: str, media_type: Optional[MediaType] = None, **kwargs) -> None:
     """Fetches then exports the data for given `media_name`.
 

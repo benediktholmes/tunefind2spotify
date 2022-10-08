@@ -56,8 +56,6 @@ class SpotifyClient:
         )
         logger.debug(f'Spotify client {self} successfully initialized and authenticated.')
 
-    # TODO: In future differentiate media_name & playlist_name.
-    # TODO: Ensure to only add unique URIs!
     def export(self,
                playlist_name: str,
                track_uris: List[str],
@@ -75,6 +73,11 @@ class SpotifyClient:
             ID of newly created playlist
         """
         logger.info(f'Exporting playlist \'{playlist_name}\' to Spotify ...')
+        # remove duplicates
+        len_before = len(track_uris)
+        track_uris = list(set(track_uris))
+        if x := len_before - len(track_uris):
+            logger.info(f'Found {x}-many duplicate tracks for \'{playlist_name}\' and will not export them.')
         # create playlist
         if not self._playlist_exists(playlist_name):
             playlist = self.client.user_playlist_create(self.client.me()['id'],

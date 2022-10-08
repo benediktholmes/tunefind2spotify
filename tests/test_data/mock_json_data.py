@@ -2,8 +2,9 @@
 
 from tunefind2spotify.utils import MediaType
 
-MOCK_SHOW_JSON = {'media_name': 'The Mocks',
+MOCK_SHOW_JSON = {'media_name': 'the-mocks',
                   'media_type': MediaType.SHOW,
+                  'readable_name': 'The Mocks',
                   'seasons': [
                       {'name': 'Season 1',
                        'id': 'season/1',
@@ -48,8 +49,9 @@ MOCK_SHOW_JSON = {'media_name': 'The Mocks',
                   ]}
 
 
-MOCK_MOVIE_JSON = {'media_name': 'Mockies Adventures',
+MOCK_MOVIE_JSON = {'media_name': 'mockies-adventures',
                    'media_type': MediaType.MOVIE,
+                   'readable_name': 'Mockies Adventures',
                    'songs': [
                        {'id': 5,
                         'name': 'This is a test.',
@@ -74,8 +76,9 @@ MOCK_MOVIE_JSON = {'media_name': 'Mockies Adventures',
                    ]}
 
 
-MOCK_GAME_JSON = {'media_name': 'Mockricilious',
+MOCK_GAME_JSON = {'media_name': 'mockricilious',
                   'media_type': MediaType.GAME,
+                  'readable_name': 'Mockricilious',
                   'songs': [
                       {'id': 0,
                        'name': 'This is a test.',
@@ -98,11 +101,6 @@ MOCK_GAME_JSON = {'media_name': 'Mockricilious',
                        'spotify': 'spotify:track:empty',
                        'artists': 'No one.'}
                   ]}
-
-
-MOCK_SHOW_JSON_NAME_NORM = MOCK_SHOW_JSON['media_name'].replace(' ', '-').lower()
-MOCK_MOVIE_JSON_NAME_NORM = MOCK_MOVIE_JSON['media_name'].replace(' ', '-').lower()
-MOCK_GAME_JSON_NAME_NORM = MOCK_GAME_JSON['media_name'].replace(' ', '-').lower()
 
 
 def _get_show_uris():
