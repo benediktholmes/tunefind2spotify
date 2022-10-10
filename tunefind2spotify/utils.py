@@ -1,6 +1,8 @@
 """Collection of project wide utility functions."""
 
-from enum import IntEnum
+import argparse
+import enum
+
 from functools import wraps
 from typing import List
 
@@ -35,7 +37,7 @@ def singleton(cls):
     return cls
 
 
-class MediaType(IntEnum):
+class MediaType(enum.IntEnum):
     """Enum for ease of handling values describing Tunefind media types."""
     SHOW = 0
     MOVIE = 1
@@ -74,3 +76,29 @@ def dict_keep(d: dict, keys: List[object]) -> dict:
         A new dictionary with at most the keys specified by `keys`.
     """
     return {k: v for k, v in d.items() if k in keys}
+
+
+class EnumAction(argparse.Action):
+    """Argparse action for handling enums."""
+
+    def __init__(self, **kwargs) -> None:
+        """Sets type of choices."""
+        enum_type = kwargs.pop('type', None)
+        if enum_type is None:
+            raise ValueError(f'Argument `{type}` must be assigned an enum when using EnumAction')
+        if not issubclass(enum_type, enum.Enum):
+            raise TypeError(f'Argument `{type}` must be an enum when using EnumAction')
+
+        kwargs.setdefault('choices', tuple(e.name for e in enum_type))
+
+        super(EnumAction, self).__init__(**kwargs)
+        self._enum = enum_type
+
+    def __call__(self,
+                 parser,
+                 namespace,
+                 values,
+                 option_string=None) -> None:
+        """Convert value to enum."""
+        value = self._enum[values]
+        setattr(namespace, self.dest, value)

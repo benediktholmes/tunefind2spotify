@@ -26,7 +26,6 @@ from tunefind2spotify.utils import singleton
 logger = fetch_logger(__name__)
 
 
-# TODO: Error handling if playlist_add_items handles 40X return code!
 @singleton
 class SpotifyClient:
     """Client that exposes relevant interface to Spotify.
@@ -77,7 +76,7 @@ class SpotifyClient:
         len_before = len(track_uris)
         track_uris = list(set(track_uris))
         if x := len_before - len(track_uris):
-            logger.info(f'Found {x}-many duplicate tracks for \'{playlist_name}\' and will not export them.')
+            logger.info(f'Found {x} duplicate tracks for \'{playlist_name}\' and will not export them.')
         # create playlist
         if not self._playlist_exists(playlist_name):
             playlist = self.client.user_playlist_create(self.client.me()['id'],

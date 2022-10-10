@@ -44,7 +44,6 @@ def _fetch_json(url: str) -> dict:
         if result:
             return result
         else:
-            # TODO: Now fails on first attempt. In future maybe implement retry?
             log_and_raise(logger, EmptyJSONResponse, 'Empty json returned from request!')
     except requests.RequestException as e:
         log_and_raise(logger, e, '')

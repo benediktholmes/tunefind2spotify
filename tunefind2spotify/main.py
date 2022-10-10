@@ -18,7 +18,7 @@ from tunefind2spotify import db
 from tunefind2spotify.exceptions import log_and_raise, MissingCredentialsException
 from tunefind2spotify.log import fetch_logger
 from tunefind2spotify.spotify_client import SpotifyClient
-from tunefind2spotify.utils import MediaType
+from tunefind2spotify.utils import EnumAction, MediaType
 
 
 logger = fetch_logger(__name__)
@@ -185,7 +185,8 @@ def entrypoint():
                               required=True,
                               help='Name of media to scrape.')
     parser_fetch.add_argument('-mt', '--media_type',
-                              choices=MediaType._member_names_,
+                              type=MediaType,
+                              action=EnumAction,
                               help='Type of media to scrape. Optional, will be inferred if not given.')
     # export command
     parser_fetch = subparsers.add_parser('export',
@@ -204,14 +205,11 @@ def entrypoint():
                               required=True,
                               help='Name of media to scrape.')
     parser_fetch.add_argument('-mt', '--media_type',
-                              choices=[x.lower() for x in MediaType._member_names_],
+                              type=MediaType,
+                              action=EnumAction,
                               help='Type of media to scrape. Optional, will be inferred if not given.')
 
-    # TODO: There must be a cleaner way to transfer the string from mt choices to its enum value?
     args = vars(parser.parse_args())
-    if 'media_type' in args.keys():
-        args.update({'media_type': MediaType.read_in(args['media_type'])})
-
     logger.debug(f'Application was invoked with args: {args}.')
     global ARGS
     ARGS = args
