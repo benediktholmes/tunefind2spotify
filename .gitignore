@@ -2,7 +2,7 @@
 tests/test_data/*.db
 
 # Coverage Output
-.coverage
+.coverage.*
 
 # IDE
 .idea/

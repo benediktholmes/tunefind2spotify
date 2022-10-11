@@ -26,3 +26,6 @@ exclude_lines =
 show_missing = True
 fail_under = 90
 skip_empty = True
+
+[json]
+output = .coverage.json
