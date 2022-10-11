@@ -21,3 +21,10 @@
 ### 0.1.1
 - added: unittests
 - added: configs for linter and coverage
+
+### 0.2.0
+- added: requirements and config to build Sphinx docs
+- added: automation of: lint & tests & doc build
+- update: store readable name of media (breaks old media table scheme)
+- update: playlist name and description at creation
+- update: minor fixes and attend to other open TODOs
