@@ -1,3 +1,5 @@
+"""Test module for `tunefind2spotify.log`."""
+
 from tunefind2spotify.log import _LOG_LEVEL,\
                                  fetch_logger,\
                                  flatten_multiline_string as fms

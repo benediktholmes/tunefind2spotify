@@ -1,4 +1,6 @@
-from tests.mock_spotify_client import SpotifyClient
+"""Test module for `tunefind2spotify.core.spotify_client`."""
+
+from tests.core.mock_spotify_client import SpotifyClient
 from tests.test_data.mock_json_data import \
     MOCK_SHOW_JSON, \
     MOCK_MOVIE_JSON, \

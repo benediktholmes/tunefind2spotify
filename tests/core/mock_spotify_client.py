@@ -1,9 +1,9 @@
-"""Mock of module `tunefind2spotify.spotify_client`.
+"""Mock of module `tunefind2spotify.core.spotify_client`.
 
 To be used as surrogate for above mentioned module during testing.
 
 Monkey patches the object initialization for
-`tunefind2spotify.spotify_client.SpotifyClient` that replaces the original
+`tunefind2spotify.core.spotify_client.SpotifyClient` that replaces the original
 client object (`spotipy.client.Spotify`) attribute with a mock that replaces(?)
 Spotify API calls with noops and returns correct information using sample data
 @ `tests.test_data.mock_json_data`. Prevents that real playlists are created
@@ -18,7 +18,7 @@ Via module-level `__getattr__` the (remaining) namespace of the mocked module is
 made available to the importer of the module.
 """
 
-from tunefind2spotify import spotify_client
+from tunefind2spotify.core import spotify_client
 
 from tests.mock_logger import mock_logger
 from tests.test_data.mock_json_data import \

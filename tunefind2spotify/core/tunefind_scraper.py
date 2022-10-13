@@ -63,10 +63,17 @@ def handle_redirect_link(url: str) -> str:
     Returns:
         The correct Spotify URI or empty string in any other case.
     """
+    retry_limit = 3
     try:
         resp = requests.get(url, allow_redirects=False)
         if resp.status_code == 302:
-            resp = requests.get(url, allow_redirects=True)
+            i = 0
+            while i < retry_limit and resp.status_code != 200:
+                try:
+                    resp = requests.get(url, allow_redirects=True)
+                except ConnectionError:
+                    pass
+                i += 1
             x = f'spotify:track:{resp.url.split("/")[-1]}'
             logger.debug(f'Replaced forward link \'{url}\' -> \'{x}\'.')
             return x
@@ -329,6 +336,5 @@ def scrape(media_name: str, media_type: Optional[MediaType] = None) -> dict:
         A (nested) dictionary object corresponding to the JSON holding the
         relevant scraped information.
     """
-    media_name, media_type = name_and_type_check(media_name, media_type)
     logger.info(f'Scraping \'{media_name}\' from Tunefind ...')
     return MEDIA_MAP[media_type](media_name)

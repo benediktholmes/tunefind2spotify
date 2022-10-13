@@ -13,6 +13,7 @@ refreshed automatically and cached in `PROJECT_DIR/.cache`.
 
 """
 
+from dataclasses import dataclass
 from typing import List, Optional
 
 from spotipy import Spotify
@@ -26,6 +27,36 @@ from tunefind2spotify.utils import singleton
 logger = fetch_logger(__name__)
 
 
+@dataclass
+class SpotifyCredentials:
+    """Dataclass to hold Spotify API credentials.
+
+    Args:
+        client_id: ID of registered app.
+        client_secret: Secret of registered app.
+        redirect_uri: Redirect URI specified for registered app.
+    """
+
+    client_id: str
+    client_secret: str
+    redirect_uri: str
+
+    def is_valid(self) -> bool:
+        """Checks whether object attributes match format."""
+        return str.isalnum(self.client_id) and len(self.client_id) == 32 and \
+               str.isalnum(self.client_secret) and len(self.client_secret) == 32 and \
+               self.redirect_uri.startswith('https://')
+
+    def __repr__(self):
+        """Blacked out `__repr__` to keep log clean."""
+        return f'SpotifyCredentials(client_id={self.client_id}, ' \
+               f'client_secret={"*"*(len(self.client_secret)-4) + self.client_secret[-4:]}, ' \
+               f'redirect_uri={self.redirect_uri})'
+
+    def __str__(self):
+        return self.__repr__()
+
+
 @singleton
 class SpotifyClient:
     """Client that exposes relevant interface to Spotify.
@@ -34,21 +65,16 @@ class SpotifyClient:
         client (spotipy.client.Spotify): Spotipy client object.
     """
 
-    def __init__(self,
-                 client_id: str,
-                 client_secret: str,
-                 redirect_uri: str) -> None:
+    def __init__(self, credentials: SpotifyCredentials) -> None:
         """Initializes the Spotify client with authentication data.
 
         Args:
-            client_id: ID of registered app.
-            client_secret: Secret of registered app.
-            redirect_uri: Redirect URI specified for registered app.
+            credentials: Spotify credentials object.
         """
         self.client = Spotify(oauth_manager=SpotifyOAuth(
-                    client_id=client_id,
-                    client_secret=client_secret,
-                    redirect_uri=redirect_uri,
+                    client_id=credentials.client_id,
+                    client_secret=credentials.client_secret,
+                    redirect_uri=credentials.redirect_uri,
                     scope=['playlist-modify-private',
                            'playlist-read-private']
                 )

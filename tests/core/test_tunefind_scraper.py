@@ -1,8 +1,10 @@
+"""Test module for `tunefind2spotify.core.tunefind_scraper`."""
+
 import pytest
 
 from tunefind2spotify.utils import MediaType
 
-from tests import mock_tunefind_scraper as tunefind_scraper
+from tests.core import mock_tunefind_scraper as tunefind_scraper
 from tests.test_data.mock_json_data import \
     MOCK_SHOW_JSON, \
     MOCK_MOVIE_JSON, \
@@ -61,33 +63,12 @@ def test_mock_get():
 
 
 def test_scrape_wo_media_type():
-    tunefind_scraper.scrape(MOCK_SHOW_JSON['media_name'])
-    tunefind_scraper.scrape(MOCK_MOVIE_JSON['media_name'])
-    tunefind_scraper.scrape(MOCK_GAME_JSON['media_name'])
-
-
-def test_scrape_wo_media_type_readable():
-    tunefind_scraper.scrape(MOCK_SHOW_JSON['readable_name'])
-    tunefind_scraper.scrape(MOCK_MOVIE_JSON['readable_name'])
-    tunefind_scraper.scrape(MOCK_GAME_JSON['readable_name'])
-
-
-def test_scrape_wo_media_type_repeating():
-    tunefind_scraper.scrape(MOCK_SHOW_JSON['media_name'])
-    tunefind_scraper.scrape(MOCK_SHOW_JSON['media_name'])
-    tunefind_scraper.scrape(MOCK_MOVIE_JSON['media_name'])
-    tunefind_scraper.scrape(MOCK_MOVIE_JSON['media_name'])
-    tunefind_scraper.scrape(MOCK_GAME_JSON['media_name'])
-    tunefind_scraper.scrape(MOCK_GAME_JSON['media_name'])
-
-
-def test_scrape_wo_media_type_readable_repeating():
-    tunefind_scraper.scrape(MOCK_SHOW_JSON['readable_name'])
-    tunefind_scraper.scrape(MOCK_SHOW_JSON['readable_name'])
-    tunefind_scraper.scrape(MOCK_MOVIE_JSON['readable_name'])
-    tunefind_scraper.scrape(MOCK_MOVIE_JSON['readable_name'])
-    tunefind_scraper.scrape(MOCK_GAME_JSON['readable_name'])
-    tunefind_scraper.scrape(MOCK_GAME_JSON['readable_name'])
+    with pytest.raises(KeyError):
+        tunefind_scraper.scrape(MOCK_SHOW_JSON['media_name'])
+    with pytest.raises(KeyError):
+        tunefind_scraper.scrape(MOCK_MOVIE_JSON['media_name'])
+    with pytest.raises(KeyError):
+        tunefind_scraper.scrape(MOCK_GAME_JSON['media_name'])
 
 
 def test_scrape_w_media_type():
@@ -102,27 +83,21 @@ def test_scrape_w_media_type_readable():
     tunefind_scraper.scrape(MOCK_GAME_JSON['readable_name'], MediaType.GAME)
 
 
-def test_scrape_w_media_type_to_be_corrected():
-    tunefind_scraper.scrape(MOCK_SHOW_JSON['media_name'], MediaType.MOVIE)
-    tunefind_scraper.scrape(MOCK_MOVIE_JSON['media_name'], MediaType.GAME)
-    tunefind_scraper.scrape(MOCK_GAME_JSON['media_name'], MediaType.SHOW)
-
-
-def test_scrape_w_media_type_to_be_corrected_readable():
-    tunefind_scraper.scrape(MOCK_SHOW_JSON['readable_name'], MediaType.MOVIE)
-    tunefind_scraper.scrape(MOCK_MOVIE_JSON['readable_name'], MediaType.GAME)
-    tunefind_scraper.scrape(MOCK_GAME_JSON['readable_name'], MediaType.SHOW)
-
-
-def test_scrape_w_media_name_already_correct():
+def test_scrape_w_media_type_repeating():
+    tunefind_scraper.scrape(MOCK_SHOW_JSON['media_name'], MediaType.SHOW)
     tunefind_scraper.scrape(MOCK_SHOW_JSON['media_name'], MediaType.SHOW)
     tunefind_scraper.scrape(MOCK_MOVIE_JSON['media_name'], MediaType.MOVIE)
+    tunefind_scraper.scrape(MOCK_MOVIE_JSON['media_name'], MediaType.MOVIE)
+    tunefind_scraper.scrape(MOCK_GAME_JSON['media_name'], MediaType.GAME)
     tunefind_scraper.scrape(MOCK_GAME_JSON['media_name'], MediaType.GAME)
 
 
-def test_scrape_w_media_name_already_correct_readable():
+def test_scrape_w_media_type_readable_repeating():
+    tunefind_scraper.scrape(MOCK_SHOW_JSON['readable_name'], MediaType.SHOW)
     tunefind_scraper.scrape(MOCK_SHOW_JSON['readable_name'], MediaType.SHOW)
     tunefind_scraper.scrape(MOCK_MOVIE_JSON['readable_name'], MediaType.MOVIE)
+    tunefind_scraper.scrape(MOCK_MOVIE_JSON['readable_name'], MediaType.MOVIE)
+    tunefind_scraper.scrape(MOCK_GAME_JSON['readable_name'], MediaType.GAME)
     tunefind_scraper.scrape(MOCK_GAME_JSON['readable_name'], MediaType.GAME)
 
 

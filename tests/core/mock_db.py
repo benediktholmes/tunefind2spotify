@@ -1,8 +1,8 @@
-"""Mock of module `tunefind2spotify.db`.
+"""Mock of module `tunefind2spotify.core.db`.
 
 To be used as surrogate for above mentioned module during testing.
 
-Wraps initialization of `tunefind2spotify.db.DBConnector` to alter the path
+Wraps initialization of `tunefind2spotify.core.db.DBConnector` to alter the path
 where the data base during testing is located. Prevents that test data is
 written into production data base.By default the database file is recreated for
 each call to the `__init__`. Set `tests.mock_db.REUSE = True` in test cases that
@@ -19,7 +19,7 @@ made available to the importer of the module.
 
 import os
 
-from tunefind2spotify import db
+from tunefind2spotify.core import db
 
 from tests.mock_logger import mock_logger
 
@@ -28,7 +28,7 @@ REUSE = False
 
 
 def _get_mock_db_file(reuse: bool):
-    parent_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_data')
+    parent_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'test_data')
     test_db_path = os.path.join(parent_dir, 'test.db')
     if os.path.isdir(parent_dir):
         if os.path.isfile(test_db_path) and not reuse:

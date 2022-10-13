@@ -1,4 +1,4 @@
-"""Mock of module `tunefind2spotify.tunefind_scraper`.
+"""Mock of module `tunefind2spotify.core.tunefind_scraper`.
 
 To be used as surrogate for above mentioned module during testing.
 
@@ -6,7 +6,7 @@ Module functions making web requests are monkey patched with functions mocking
 their original functionality and returning correct data using sample test data
 @ `tests.test_data.mock_json_data`. Prevents that actual website scraping is
 executed during testing. Implies that successful tests are only valid while the
-sample data matche the data scheme from the API.
+sample data matches the data scheme from the API.
 
 The module logger is also monkey patched with a logger that writes into a
 `StringIO` object. For testing purposes, logged content can be read from
@@ -19,7 +19,7 @@ made available to the importer of the module.
 import copy
 import random
 
-from tunefind2spotify import tunefind_scraper
+from tunefind2spotify.core import tunefind_scraper
 from tunefind2spotify.utils import MediaType
 
 from tests.mock_logger import mock_logger

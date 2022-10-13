@@ -1,3 +1,5 @@
+"""Test module for `tunefind2spotify.utils`."""
+
 from copy import deepcopy
 
 from tunefind2spotify.utils import singleton, MediaType, dict_keep

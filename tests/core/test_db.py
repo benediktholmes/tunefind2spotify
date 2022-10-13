@@ -1,10 +1,12 @@
+"""Test module for `tunefind2spotify.core.db`."""
+
 import datetime
 import pytest
 import _sqlite3
 
 from tunefind2spotify.utils import MediaType
 
-from tests import mock_db as db
+from tests.core import mock_db as db
 from tests.test_data.mock_json_data import \
     MOCK_SHOW_JSON, \
     MOCK_MOVIE_JSON, \

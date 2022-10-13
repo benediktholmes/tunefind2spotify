@@ -48,7 +48,7 @@ from tunefind2spotify.utils import MediaType, singleton
 logger = fetch_logger(__name__)
 
 DEFAULT_DB_FILEPATH = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
         'data',
         'tunefind_sqlite.db')
 

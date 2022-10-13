@@ -1,3 +1,5 @@
+"""Test module for `tunefind2spotify.exceptions`."""
+
 import os
 import pytest
 
