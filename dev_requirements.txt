@@ -1,6 +1,0 @@
-coverage
-flake8
-myst-parser
-pytest
-sphinx
-sphinx-rtd-theme
