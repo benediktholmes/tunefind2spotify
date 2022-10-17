@@ -30,9 +30,11 @@
 
 ### 1.0.0 (first stable version)
 - added: LICENSE.md
-- updated: Switched to use of setuptools instead of requirements files 
+- updated: Switched to use of setuptools instead of requirements files
+- updated: use of tox 
 - refactor: Grouped project modules in subpackages
 - refactor: Split into api, main and actions modules
 - refactor: Spotify API credentials not mandatory anymore for scraping
 - refactor: API function names
 - fixed: handling of missing & non-resolving Spotify links during fetching
+- fixed: credentials argument not correctly parse in action class

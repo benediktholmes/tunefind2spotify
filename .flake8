@@ -3,5 +3,6 @@ ignore = W191, E126, E127, E128
 max-line-length = 120
 exclude = docs/,
           venv/,
+          .tox/,
           **/__init__.py
 max-complexity = 10
