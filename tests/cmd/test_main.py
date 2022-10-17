@@ -11,9 +11,7 @@ from tests.test_data.mock_json_data import \
     MOCK_GAME_JSON
 
 
-COMMAND = f'PYTHONPATH={os.path.dirname(os.path.dirname(os.path.abspath(__file__)))} ' + \
-          f'python {os.path.join("tests", "mock_main.py")} ' + \
-          '{}'
+COMMAND = main.PROGRAM_NAME
 
 
 def test_entrypoint_usage():
@@ -84,16 +82,16 @@ def test_entrypoint_usage_export_with_fetch():
     sys.argv = _copy
 
 
-def test_entrypoint_usage_create_playlist():
+def test_entrypoint_usage_pull():
     _copy = sys.argv
 
-    sys.argv = [''] + f'create_playlist {MOCK_SHOW_JSON["media_name"]}'.split()
+    sys.argv = [''] + f'pull {MOCK_SHOW_JSON["media_name"]}'.split()
     main.entrypoint()
 
-    sys.argv = [''] + f'create_playlist {MOCK_MOVIE_JSON["media_name"]}'.split()
+    sys.argv = [''] + f'pull {MOCK_MOVIE_JSON["media_name"]}'.split()
     main.entrypoint()
 
-    sys.argv = [''] + f'create_playlist {MOCK_GAME_JSON["media_name"]}'.split()
+    sys.argv = [''] + f'pull {MOCK_GAME_JSON["media_name"]}'.split()
     main.entrypoint()
 
     sys.argv = _copy

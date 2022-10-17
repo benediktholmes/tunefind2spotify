@@ -83,19 +83,19 @@ def entrypoint():
                                help='Name of media to scrape.')
     cred_arg = parser_export.add_argument(*credentials_options[0], **credentials_options[1])
 
-    # create_playlist command
-    parser_create_playlist = subparsers.add_parser('create_playlist',
-                                                   help='Combination of first fetch and then export.')
-    parser_create_playlist.set_defaults(func=api.create_playlist)
-    parser_create_playlist.add_argument('media_name',
-                                        metavar='MEDIA-NAME',
-                                        type=str,
-                                        help='Name of media to scrape.')
-    cred_arg = parser_create_playlist.add_argument(*credentials_options[0], **credentials_options[1])
-    parser_create_playlist.add_argument('-mt', '--media_type',
-                                        type=MediaType,
-                                        action=EnumAction,
-                                        help='Type of media to scrape. Optional, will be inferred if not given.')
+    # pull command
+    parser_pull = subparsers.add_parser('pull',
+                                        help='Combination of first fetch and then export.')
+    parser_pull.set_defaults(func=api.pull)
+    parser_pull.add_argument('media_name',
+                             metavar='MEDIA-NAME',
+                             type=str,
+                             help='Name of media to scrape.')
+    cred_arg = parser_pull.add_argument(*credentials_options[0], **credentials_options[1])
+    parser_pull.add_argument('-mt', '--media_type',
+                             type=MediaType,
+                             action=EnumAction,
+                             help='Type of media to scrape. Optional, will be inferred if not given.')
 
     args = parser.parse_args()
     if credentials_options[1]['dest'] in vars(args).keys():

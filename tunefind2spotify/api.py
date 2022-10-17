@@ -61,10 +61,10 @@ def export(media_name: str,
         logger.warning(f'Media \'{media_name}\' does not exist in database. Please fetch first.')
 
 
-def create_playlist(media_name: str,
-                    credentials: SpotifyCredentials,
-                    media_type: Optional[MediaType] = None,
-                    **kwargs) -> None:
+def pull(media_name: str,
+         credentials: SpotifyCredentials,
+         media_type: Optional[MediaType] = None,
+         **kwargs) -> None:
     """Fetches then exports the data for given `media_name`.
 
     Args:

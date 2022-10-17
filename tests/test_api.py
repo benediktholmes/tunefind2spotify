@@ -59,15 +59,15 @@ def test_export_with_fetch():
     api.db.REUSE = _val
 
 
-def test_create_playlist():
+def test_pull():
     _val = api.db.REUSE
     api.db.REUSE = True
 
-    api.create_playlist(MOCK_SHOW_JSON['media_name'], credentials=CREDENTIALS)
+    api.pull(MOCK_SHOW_JSON['media_name'], credentials=CREDENTIALS)
     assert api.db.DBConnector().media_exists(MOCK_SHOW_JSON['media_name'])
-    api.create_playlist(MOCK_MOVIE_JSON['media_name'], credentials=CREDENTIALS)
+    api.pull(MOCK_MOVIE_JSON['media_name'], credentials=CREDENTIALS)
     assert api.db.DBConnector().media_exists(MOCK_MOVIE_JSON['media_name'])
-    api.create_playlist(MOCK_GAME_JSON['media_name'], credentials=CREDENTIALS)
+    api.pull(MOCK_GAME_JSON['media_name'], credentials=CREDENTIALS)
     assert api.db.DBConnector().media_exists(MOCK_GAME_JSON['media_name'])
 
     api.db.REUSE = _val
