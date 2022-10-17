@@ -20,22 +20,22 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
+
+      - name: Code Linter
+        run: |
+          python -m pip install flake8
+          flake8
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          if [ -f setup.py ]; then pip install .[dev]; fi
+          python -m pip install tox tox-gh-actions
 
-      - name: Code Linter
-        run: |
-          flake8
-
-      - name: Test with pytest
-        run: |
-          coverage run && coverage json && coverage report
+      - name: Test with tox
+        run: tox
 
       - name: "Upload coverage data"
         uses: actions/upload-artifact@v3

@@ -3,8 +3,6 @@
 Create Spotify playlists for your favorite movies, shows and games with data
 gathered on Tunefind.
 
-BADGES
-
 <div id="badges" align="left">
   <a href="https://github.com/benediktholmes/tunefind2spotify/actions/workflows/unittests.yml">
     <img src=https://github.com/benediktholmes/tunefind2spotify/actions/workflows/unittests.yml/badge.svg>
@@ -72,10 +70,11 @@ Linting is configured for flake:
 flake8
 ```
 
-Run Unittests with coverage via:
+Run Unittests with tox via:
 
 ```shell script
-coverage run && coverage report
+pip install tox
+tox
 ```
 
 You can alternatively just invoke tests with:
