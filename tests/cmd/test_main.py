@@ -1,6 +1,5 @@
 """Test module for `tunefind2spotify.cmd.main`."""
 
-import os
 import pytest
 import sys
 
